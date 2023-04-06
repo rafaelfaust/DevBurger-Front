@@ -46,11 +46,19 @@ function Login() {
 
         <form noValidate onSubmit={handleSubmit(onSubmit)}>
           <Label>Email</Label>
-          <Input type="email" {...register('email')} />
+          <Input
+            type="email"
+            {...register('email')}
+            error={errors.email?.message}
+          />
           <ErrorMessage>{errors.email?.message}</ErrorMessage>
 
           <Label>Password</Label>
-          <Input type="password" {...register('password')} />
+          <Input
+            type="password"
+            {...register('password')}
+            error={errors.password?.message}
+          />
           <ErrorMessage>{errors.password?.message}</ErrorMessage>
 
           <Button type="submit">Sign In</Button>

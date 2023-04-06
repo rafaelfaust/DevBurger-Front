@@ -56,9 +56,9 @@ export const Input = styled.input`
   height: 40px;
   box-shadow: 3px 3px 10px rgba(74, 144, 226, 0.19);
   border-radius: 5px;
-  border: none;
+  border: ${props => (props.error ? '2px solid #CC1717;' : 'none')};
   padding-left: 5px;
-  color: #ff0202;
+  color: #cc1717;
 `
 export const ErrorMessage = styled.p`
   font-style: normal;
@@ -81,7 +81,7 @@ export const Button = styled.button`
   margin-top: 45px;
   cursor: pointer;
   transition: 0.5s;
-  color: #ff0202;
+  color: #cc1717;
   background: #efa216;
   box-shadow: inset 0 0 0 50px #efa216;
   border: solid 1px #efa216;
@@ -93,8 +93,8 @@ export const Button = styled.button`
     border-color: #efa216;
   }
   &:active {
-    border: solid 1px #ff0202;
-    color: #ff0202;
+    border: solid 1px #cc1717;
+    color: #cc1717;
   }
 `
 export const SignInLink = styled.p`
@@ -110,7 +110,7 @@ export const SignInLink = styled.p`
     cursor: pointer;
 
     &:hover {
-      color: #ff0202;
+      color: #cc1717;
     }
 
     &:active {
