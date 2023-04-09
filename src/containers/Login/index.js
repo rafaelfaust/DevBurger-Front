@@ -5,6 +5,8 @@ import * as Yup from 'yup'
 
 import LoginImg from '../../assets/login-img.svg'
 import Logo from '../../assets/logo.png'
+import Button from '../../components/Button'
+import apiDevBurger from '../../services/api'
 import {
   Container,
   LoginImage,
@@ -12,7 +14,6 @@ import {
   Label,
   Input,
   ErrorMessage,
-  Button,
   SignInLink,
   Dev
 } from './styles'
@@ -35,7 +36,13 @@ function Login() {
     resolver: yupResolver(schema)
   })
 
-  const onSubmit = data => console.log(data)
+  const onSubmit = async clientData => {
+    const response = await apiDevBurger.post('sessions', {
+      email: clientData.email,
+      password: clientData.password
+    })
+    console.log(response)
+  }
 
   return (
     <Container>
@@ -61,7 +68,9 @@ function Login() {
           />
           <ErrorMessage>{errors.password?.message}</ErrorMessage>
 
-          <Button type="submit">Sign In</Button>
+          <Button type="submit" style={{ marginTop: 75 }}>
+            Sign In
+          </Button>
         </form>
 
         <SignInLink>
