@@ -1,11 +1,14 @@
 import { yupResolver } from '@hookform/resolvers/yup'
 import React from 'react'
 import { useForm } from 'react-hook-form'
+import { Link } from 'react-router-dom'
+import { toast } from 'react-toastify'
 import * as Yup from 'yup'
 
 import LoginImg from '../../assets/login-img.svg'
 import Logo from '../../assets/logo.png'
 import Button from '../../components/Button'
+import { useUser } from '../../hooks/UserContext'
 import apiDevBurger from '../../services/api'
 import {
   Container,
@@ -18,16 +21,18 @@ import {
   Dev
 } from './styles'
 
-const schema = Yup.object().shape({
-  email: Yup.string()
-    .email('Digite um e-mail válido')
-    .required('O e-mail é obrigatorio'),
-  password: Yup.string()
-    .required('A senha é obrigatoria')
-    .min(6, 'A senha deve ter pelo menos 6 digitos')
-})
-
 function Login() {
+  const { putUserData } = useUser()
+
+  const schema = Yup.object().shape({
+    email: Yup.string()
+      .email('Digite um e-mail válido')
+      .required('O e-mail é obrigatorio'),
+    password: Yup.string()
+      .required('A senha é obrigatoria')
+      .min(6, 'A senha deve ter pelo menos 6 digitos')
+  })
+
   const {
     register,
     handleSubmit,
@@ -37,11 +42,19 @@ function Login() {
   })
 
   const onSubmit = async clientData => {
-    const response = await apiDevBurger.post('sessions', {
-      email: clientData.email,
-      password: clientData.password
-    })
-    console.log(response)
+    const { data } = await toast.promise(
+      apiDevBurger.post('sessions', {
+        email: clientData.email,
+        password: clientData.password
+      }),
+      {
+        pending: 'Verificando seu dados',
+        success: 'Seja Bem Vindo(a) 👌',
+        error: 'Verifique seu email e senha 🤯'
+      }
+    )
+
+    putUserData(data)
   }
 
   return (
@@ -52,7 +65,7 @@ function Login() {
         <h1>Login</h1>
 
         <form noValidate onSubmit={handleSubmit(onSubmit)}>
-          <Label>Email</Label>
+          <Label>E-mail</Label>
           <Input
             type="email"
             {...register('email')}
@@ -60,7 +73,7 @@ function Login() {
           />
           <ErrorMessage>{errors.email?.message}</ErrorMessage>
 
-          <Label>Password</Label>
+          <Label>Senha</Label>
           <Input
             type="password"
             {...register('password')}
@@ -75,7 +88,10 @@ function Login() {
 
         <SignInLink>
           {' '}
-          Não possui conta? <a>Sign Up</a>{' '}
+          Não possui conta?{' '}
+          <Link style={{ color: '#efa216' }} to="/cadastro">
+            Sign Up
+          </Link>{' '}
         </SignInLink>
       </ContainerItens>
       <Dev> 2023 Rafael Faust </Dev>
