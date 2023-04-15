@@ -11,4 +11,18 @@ export default createGlobalStyle`
     outline: none;
     text-decoration: none;
 }
+
+*::-webkit-scrollbar {
+    width: 12px;
+  }
+  
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  *::-webkit-scrollbar-thumb {
+    background-color: #efa216;
+    border-radius: 10px;
+    border: 2px solid #cc1717;
+  }
 `
