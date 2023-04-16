@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import Carousel from 'react-elastic-carousel'
 
 import apiDevBurger from '../../services/api'
+import formatCurrency from '../../utils/formatCurrency'
 import { Container, H1, ContainerItems, Image, Button } from './styles'
 
 function OffersCarousel() {
@@ -10,7 +11,11 @@ function OffersCarousel() {
     async function loadOffers() {
       const { data } = await apiDevBurger.get('products')
 
-      const onlyOffers = data.filter(product => product.offer)
+      const onlyOffers = data
+        .filter(product => product.offer)
+        .map(product => {
+          return { ...product, formatedPrice: formatCurrency(product.price) }
+        })
 
       setOffers(onlyOffers)
     }
@@ -39,7 +44,7 @@ function OffersCarousel() {
             <ContainerItems key={product.id}>
               <Image src={product.url} alt="foto da produtos" />
               <p>{product.name}</p>
-              <p>{product.price} </p>
+              <p>{product.formatedPrice}</p>
               <Button>Peça agora</Button>
             </ContainerItems>
           ))}

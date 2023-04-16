@@ -1,6 +1,6 @@
 import React from 'react'
 
-import HomeLogo from '../../assets/banner.png'
+import HomeLogo from '../../assets/bannerProduct.svg'
 import CategoryCarousel from '../../components/CategoryCarousel'
 import OffersCarousel from '../../components/offersCarousel'
 import { Container, HomeImg } from './styles'

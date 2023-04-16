@@ -68,6 +68,7 @@ export const ContainerItems = styled.div`
 export const Image = styled.img`
   width: 200px;
   border-radius: 12px;
+  margin-bottom: 16px;
 `
 
 export const Button = styled.button`
