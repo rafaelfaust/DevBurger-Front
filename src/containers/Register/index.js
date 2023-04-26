@@ -7,7 +7,7 @@ import * as Yup from 'yup'
 
 import Logo from '../../assets/logo.png'
 import RegisterImg from '../../assets/user-img.svg'
-import Button from '../../components/Button'
+import { Button } from '../../components'
 import apiDevBurger from '../../services/api'
 import {
   Container,
@@ -33,7 +33,7 @@ const schema = Yup.object().shape({
     .oneOf([Yup.ref('password')], 'As senhas devem ser iguais')
 })
 
-function Register() {
+export function Register() {
   const {
     register,
     handleSubmit,
@@ -119,9 +119,7 @@ function Register() {
           </Link>{' '}
         </SignUpLink>
       </ContainerItens>
-      <Dev> 2023 Rafael Faust </Dev>
+      <Dev> &copy; All Rights Reserved. Designed by Rafael Faust </Dev>
     </Container>
   )
 }
-
-export default Register

@@ -1,11 +1,22 @@
 import React, { useEffect, useState } from 'react'
 
 import Logo from '../../assets/bannerProduct.svg'
+import { CardProduct } from '../../components'
 import apiDevBurger from '../../services/api'
-import { Container, ProductsImg, Btn, Menu } from './styles'
+import formatCurrency from '../../utils/formatCurrency'
+import {
+  Container,
+  ProductsImg,
+  Btn,
+  Menu,
+  ProductsContainer,
+  Dev
+} from './styles'
 
-function Products() {
+export function Products() {
   const [categories, setCatagories] = useState([])
+  const [products, setProducts] = useState([])
+  const [filteredProducts, setFilteredProducts] = useState([])
   const [activeCategory, setActiveCatagory] = useState(0)
 
   useEffect(() => {
@@ -17,8 +28,32 @@ function Products() {
       setCatagories(newCategories)
     }
 
+    async function loadProducts() {
+      const { data: allProducts } = await apiDevBurger.get('products')
+
+      const newProducts = allProducts.map(product => {
+        return { ...product, formatedPrice: formatCurrency(product.price) }
+      })
+
+      setProducts(newProducts)
+    }
+    loadProducts()
+
     loadCategory()
   }, [])
+
+  useEffect(() => {
+    if (activeCategory === 0) {
+      setFilteredProducts(products)
+    } else {
+      const newFilteredProducts = products.filter(
+        product => product.category_id === activeCategory
+      )
+
+      setFilteredProducts(newFilteredProducts)
+    }
+  }, [activeCategory, products])
+
   return (
     <Container>
       <ProductsImg src={Logo} alt="banner dos produtos" />
@@ -36,8 +71,13 @@ function Products() {
             </Btn>
           ))}
       </Menu>
+      <ProductsContainer>
+        {filteredProducts &&
+          filteredProducts.map(product => (
+            <CardProduct key={product.id} product={product} />
+          ))}
+      </ProductsContainer>
+      <Dev> &copy; All Rights Reserved. Designed by Rafael Faust </Dev>
     </Container>
   )
 }
-
-export default Products

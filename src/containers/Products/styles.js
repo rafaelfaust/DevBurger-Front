@@ -1,6 +1,9 @@
 import styled from 'styled-components'
 
-export const Container = styled.div``
+export const Container = styled.div`
+  background: #e5e5e5;
+  min-height: 100vh;
+`
 
 export const ProductsImg = styled.img`
   width: 100%;
@@ -23,4 +26,29 @@ export const Btn = styled.button`
   background: none;
   cursor: pointer;
   padding-bottom: 5px;
+`
+export const Dev = styled.p`
+  color: #efa216;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 14px;
+  cursor: pointer;
+  text-align: center;
+
+  &:hover {
+    color: #cc1717;
+  }
+
+  &:active {
+    opacity: 0.6;
+  }
+`
+export const ProductsContainer = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  padding: 10px;
+  justify-items: center;
+  margin-top: 20px;
 `
