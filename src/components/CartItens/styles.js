@@ -41,6 +41,26 @@ export const Body = styled.div`
     width: 120px;
     border-radius: 10px;
   }
+
+  .quantity-container {
+    display: flex;
+    gap: 20px;
+
+    button {
+      height: 30px;
+      background: transparent;
+      border: none;
+      font-size: 21px;
+      font-style: normal;
+      font-weight: 400;
+      line-height: 19px;
+      cursor: pointer;
+    }
+
+    p {
+      margin-top: 5px;
+    }
+  }
 `
 export const EmptyCart = styled.p`
   padding: 20px;
