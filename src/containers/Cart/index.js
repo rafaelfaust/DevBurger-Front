@@ -7,7 +7,7 @@ import { Container, CartImg, Dev } from './styles'
 export function Cart() {
   return (
     <Container>
-      <CartImg src={CartLogo} alt="logo da Carrinho" />
+      <CartImg src={CartLogo} alt="logo da carrinho" />
       <CartItens />
       <Dev> &copy; All Rights Reserved. Designed by Rafael Faust </Dev>
     </Container>

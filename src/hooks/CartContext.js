@@ -4,7 +4,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react'
 const CartContext = createContext({})
 
 export const CartProvider = ({ children }) => {
-  const [cartProducts, setCartProducts] = useState({})
+  const [cartProducts, setCartProducts] = useState([])
 
   const putProductInCart = async product => {
     const cartIndex = cartProducts.findIndex(prd => prd.id === product.id)
