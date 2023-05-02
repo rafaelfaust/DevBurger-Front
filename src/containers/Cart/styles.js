@@ -28,3 +28,9 @@ export const Dev = styled.p`
     opacity: 0.6;
   }
 `
+export const Wrapper = styled.div`
+  display: flex;
+  justify-content: space-evenly;
+  margin-top: 30px;
+  padding-bottom: 30px;
+`
