@@ -27,6 +27,7 @@ export const Container = styled.div`
     border: none;
     background: #bebebf;
     color: #efefef;
+    box-shadow: none;
   }
 
   .rec.rec-arrow:active {

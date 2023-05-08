@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import styled from 'styled-components'
 
 export const Container = styled.div`
@@ -32,6 +33,7 @@ export const Container = styled.div`
     border: none;
     background-color: #bebebf;
     color: #efefef;
+    box-shadow: none;
   }
 
   .rec.rec-dot {
@@ -63,7 +65,10 @@ export const Image = styled.img`
   border-radius: 12px;
 `
 
-export const Button = styled.button`
+export const Button = styled(Link)`
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-top: 12px;
   border-radius: 10px;
   height: 40px;
