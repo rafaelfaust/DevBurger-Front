@@ -16,6 +16,7 @@ import { Container, Menu, LinkMenu } from './styles'
 function Orders() {
   const [orders, setOrders] = useState([])
   const [filteredOrders, setFilteredOrders] = useState([])
+  const [activeStatus, setActiveStatus] = useState(1)
   const [rows, setRows] = useState([])
 
   useEffect(() => {
@@ -44,6 +45,18 @@ function Orders() {
     setRows(newRows)
   }, [filteredOrders])
 
+  useEffect(() => {
+    if (activeStatus === 1) {
+      setFilteredOrders(orders)
+    } else {
+      const statusIndex = status.findIndex(sts => sts.id === activeStatus)
+      const newFilteredOrders = orders.filter(
+        order => order.status === status[statusIndex].value
+      )
+      setFilteredOrders(newFilteredOrders)
+    }
+  }, [orders])
+
   function handleStatus(status) {
     if (status.id === 1) {
       setFilteredOrders(orders)
@@ -51,6 +64,7 @@ function Orders() {
       const newOrders = orders.filter(order => order.status === status.value)
       setFilteredOrders(newOrders)
     }
+    setActiveStatus(status.id)
   }
 
   return (
@@ -58,7 +72,11 @@ function Orders() {
       <Menu>
         {status &&
           status.map(status => (
-            <LinkMenu key={status.id} onClick={() => handleStatus(status)}>
+            <LinkMenu
+              key={status.id}
+              onClick={() => handleStatus(status)}
+              isActiveStatus={activeStatus === status.id}
+            >
               {status.label}
             </LinkMenu>
           ))}
@@ -76,7 +94,12 @@ function Orders() {
           </TableHead>
           <TableBody>
             {rows.map(row => (
-              <Row key={row.orderId} row={row} />
+              <Row
+                key={row.orderId}
+                row={row}
+                setOrders={setOrders}
+                orders={orders}
+              />
             ))}
           </TableBody>
         </Table>

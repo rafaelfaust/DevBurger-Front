@@ -16,7 +16,7 @@ import apiDevBurger from '../../../services/api'
 import status from './orderStatus'
 import { ImageProduct, Select } from './styles'
 
-function Row({ row }) {
+function Row({ row, orders, setOrders }) {
   const [open, setOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -24,6 +24,11 @@ function Row({ row }) {
     setIsLoading(true)
     try {
       await apiDevBurger.put(`orders/${id}`, { status })
+
+      const newOrdes = orders.map(order => {
+        return order._id === id ? { ...order, status } : order
+      })
+      setOrders(newOrdes)
     } catch (error) {
       console.log(error)
     } finally {
@@ -50,7 +55,7 @@ function Row({ row }) {
         <TableCell>{row.date}</TableCell>
         <TableCell>
           <Select
-            options={status}
+            options={status.filter(sts => sts.value !== 'Todos')}
             menuPortalTarget={document.body}
             placeholder="Status"
             defaultValue={
@@ -100,6 +105,8 @@ function Row({ row }) {
 }
 
 Row.propTypes = {
+  orders: PropTypes.array,
+  setOrders: PropTypes.func,
   row: PropTypes.shape({
     name: PropTypes.string.isRequired,
     orderId: PropTypes.string.isRequired,

@@ -26,4 +26,8 @@ export const Menu = styled.div`
 export const LinkMenu = styled.a`
   color: #323d5d;
   cursor: pointer;
+  font-weight: ${props => (props.isActiveStatus ? 'bold' : '300')};
+  border-bottom: ${props =>
+    props.isActiveStatus ? '2px Solid #efa216 ' : '400'};
+  padding: 20px 0;
 `
