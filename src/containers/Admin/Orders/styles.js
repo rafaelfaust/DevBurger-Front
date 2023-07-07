@@ -4,7 +4,6 @@ import styled from 'styled-components'
 export const Container = styled.div`
   background: #efefef;
   min-height: 100vh;
-  margin-right: 20px;
 `
 export const ImageProduct = styled.img`
   width: 50px;

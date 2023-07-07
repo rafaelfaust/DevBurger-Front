@@ -11,12 +11,17 @@ export const Container = styled.div`
   hr {
     margin: 50px 15px;
   }
+
+  .logout {
+    position: absolute;
+    bottom: 30px;
+  }
 `
 export const ItemContainer = styled.div`
   display: flex;
   height: 50px;
   align-items: center;
-  background: #565656;
+  background: ${props => (props.isActive ? '#565656' : 'none')};
   border-radius: 2px;
   margin: 8px 15px;
   padding: 8px;
