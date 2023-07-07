@@ -4,23 +4,25 @@ import {
   faCartShopping
 } from '@fortawesome/free-solid-svg-icons'
 
+import paths from '../../constants/paths'
+
 const listLinks = [
   {
     id: 1,
     label: 'Pedidos',
-    link: '/pedidos',
+    link: paths.Order,
     icon: faCartArrowDown
   },
   {
     id: 2,
     label: 'Produtos',
-    link: '/pedidos',
+    link: paths.Products,
     icon: faCartShopping
   },
   {
     id: 3,
     label: 'Adicionar Produto',
-    link: '/pedidos',
+    link: paths.NewProduct,
     icon: faCartPlus
   }
 ]
