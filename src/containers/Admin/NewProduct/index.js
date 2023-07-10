@@ -4,7 +4,6 @@ import { yupResolver } from '@hookform/resolvers/yup'
 import React, { useEffect, useState } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import ReactSelect from 'react-select'
-import { toast } from 'react-toastify'
 import * as Yup from 'yup'
 
 import { ErrorMessage } from '../../../components'
@@ -41,15 +40,14 @@ function NewProduct() {
   })
 
   const onSubmit = async data => {
-    // eslint-disable-next-line no-undef
-    const productDataFromData = new FromData()
+    const productFormData = new FormData()
 
-    productDataFromData.append('name', data.name)
-    productDataFromData.append('price', data.price)
-    productDataFromData.append('catecory', data.category)
-    productDataFromData.append('file', data.file[0])
+    productFormData.append('name', data.name)
+    productFormData.append('price', data.price)
+    productFormData.append('category', data.category)
+    productFormData.append('file', data.file)
 
-    await apiDevBurger.post('products', productDataFromData)
+    await apiDevBurger.post('products', productFormData)
   }
 
   useEffect(() => {
@@ -73,7 +71,7 @@ function NewProduct() {
 
         <div>
           <Label>Preço</Label>
-          <Input type="number" {...register('price')} />
+          <Input type="string" {...register('price')} />
           <ErrorMessage>{errors.price?.message}</ErrorMessage>
         </div>
 
