@@ -7,7 +7,7 @@ import * as Yup from 'yup'
 
 import LoginImg from '../../assets/login-img.svg'
 import Logo from '../../assets/logo.png'
-import { Button } from '../../components'
+import { Button, ErrorMessage } from '../../components'
 import { useUser } from '../../hooks/UserContext'
 import apiDevBurger from '../../services/api'
 import {
@@ -16,7 +16,6 @@ import {
   ContainerItens,
   Label,
   Input,
-  ErrorMessage,
   SignInLink,
   Dev
 } from './styles'
@@ -58,7 +57,11 @@ export function Login() {
     putUserData(data)
 
     setTimeout(() => {
-      history.push('/')
+      if (data.admin) {
+        history.push('/pedidos')
+      } else {
+        history.push('/')
+      }
     }, 1000)
   }
 

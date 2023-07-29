@@ -1,12 +1,16 @@
 import React, { useEffect, useState } from 'react'
 import Carousel from 'react-elastic-carousel'
+import { useHistory } from 'react-router-dom/cjs/react-router-dom.min'
 
+import { useCart } from '../../hooks/CartContext'
 import apiDevBurger from '../../services/api'
 import formatCurrency from '../../utils/formatCurrency'
 import { Container, H1, ContainerItems, Image, Button } from './styles'
 
 export function OffersCarousel() {
   const [offers, setOffers] = useState([])
+  const { putProductInCart } = useCart()
+  const { push } = useHistory()
   useEffect(() => {
     async function loadOffers() {
       const { data } = await apiDevBurger.get('products')
@@ -45,7 +49,14 @@ export function OffersCarousel() {
               <Image src={product.url} alt="foto da produtos" />
               <p>{product.name}</p>
               <p>{product.formatedPrice}</p>
-              <Button>Peça agora</Button>
+              <Button
+                onClick={() => {
+                  putProductInCart(product)
+                  push('/carrinho')
+                }}
+              >
+                Peça agora
+              </Button>
             </ContainerItems>
           ))}
       </Carousel>

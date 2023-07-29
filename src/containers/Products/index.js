@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types'
 import React, { useEffect, useState } from 'react'
 
 import Logo from '../../assets/bannerProduct.svg'
@@ -13,11 +14,16 @@ import {
   Dev
 } from './styles'
 
-export function Products() {
+export function Products({ location: { state } }) {
+  let categoryId = 0
+  if (state?.categoryId) {
+    categoryId = state.categoryId
+  }
+
   const [categories, setCatagories] = useState([])
   const [products, setProducts] = useState([])
   const [filteredProducts, setFilteredProducts] = useState([])
-  const [activeCategory, setActiveCatagory] = useState(0)
+  const [activeCategory, setActiveCatagory] = useState(categoryId)
 
   useEffect(() => {
     async function loadCategory() {
@@ -80,4 +86,8 @@ export function Products() {
       <Dev> &copy; All Rights Reserved. Designed by Rafael Faust </Dev>
     </Container>
   )
+}
+
+Products.propTypes = {
+  location: PropTypes.object
 }

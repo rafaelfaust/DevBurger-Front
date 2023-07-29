@@ -1,6 +1,6 @@
 import React from 'react'
 
-import CartLogo from '../../assets/bannerProduct.svg'
+import CartLogo from '../../assets/bannerCart.png'
 import { CartItens, CartResume } from '../../components'
 import { Container, CartImg, Wrapper, Dev } from './styles'
 
@@ -12,7 +12,10 @@ export function Cart() {
         <CartItens />
         <CartResume />
       </Wrapper>
-      <Dev> &copy; All Rights Reserved. Designed by Rafael Faust </Dev>
+      <Dev href="https://rafaelfaust.com.br" target="_blank">
+        {' '}
+        &copy; All Rights Reserved. Designed by Rafael Faust{' '}
+      </Dev>
     </Container>
   )
 }
