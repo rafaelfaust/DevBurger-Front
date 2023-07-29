@@ -55,7 +55,7 @@ function EditProduct() {
     productFormData.append('offer', data.offer)
 
     await toast.promise(
-      apiDevBurger.put(`/products/${product.id}`, productFormData),
+      apiDevBurger.put(`products/${product.id}`, productFormData),
       {
         pending: 'Editando o produto...',
         success: 'Produto editado com sucesso',
