@@ -81,7 +81,7 @@ function Row({ row, orders, setOrders }) {
                     <TableCell>Produto</TableCell>
                     <TableCell align="center">Quantidade</TableCell>
                     <TableCell>Categoria</TableCell>
-                    <TableCell>Imagem do Produto</TableCell>
+                    <TableCell align="center">Imagem do Produto</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -94,7 +94,7 @@ function Row({ row, orders, setOrders }) {
                         {productsRow.quantity}
                       </TableCell>
                       <TableCell>{productsRow.category}</TableCell>
-                      <TableCell aalign="center">
+                      <TableCell align="center">
                         <ImageProduct src={productsRow.url} />
                       </TableCell>
                     </TableRow>

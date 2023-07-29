@@ -13,7 +13,7 @@ export const Container = styled.div`
   }
 
   .logout {
-    position: absolute;
+    position: fixed;
     bottom: 30px;
   }
 `
@@ -40,4 +40,8 @@ export const ListLink = styled(Link)`
   font-style: normal;
   font-weight: normal;
   line-height: 19px;
+`
+export const Div = styled.div`
+  position: fixed;
+  width: 230px;
 `
