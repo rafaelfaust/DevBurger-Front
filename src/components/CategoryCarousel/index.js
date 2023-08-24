@@ -29,7 +29,7 @@ export function CategoryCarousel() {
       <H1>CATEGORIAS</H1>
       <Carousel
         itemsToShow={4}
-        style={{ width: '90%' }}
+        style={{ width: '89%' }}
         breakPoints={breakPoints}
       >
         {categories &&
