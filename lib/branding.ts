@@ -1,0 +1,86 @@
+function sanitizeNamespace(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
+function sanitizeStatementDescriptor(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9 ]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 13)
+    .toUpperCase()
+}
+
+const brandName = process.env.NEXT_PUBLIC_BRAND_NAME?.trim() || 'DevBurger'
+const brandWords = brandName.split(/\s+/).filter(Boolean)
+const brandWordmarkLead =
+  process.env.NEXT_PUBLIC_BRAND_WORDMARK_LEAD?.trim() ||
+  brandWords[0] ||
+  brandName
+const brandWordmarkTrail =
+  process.env.NEXT_PUBLIC_BRAND_WORDMARK_TRAIL?.trim() ||
+  brandWords.slice(1).join(' ')
+const namespace =
+  sanitizeNamespace(process.env.NEXT_PUBLIC_APP_NAMESPACE?.trim() || brandName) ||
+  'storefront'
+
+export const branding = {
+  brandName,
+  brandWordmarkLead: brandWordmarkLead.toUpperCase(),
+  brandWordmarkTrail: brandWordmarkTrail.toUpperCase(),
+  siteDescription:
+    process.env.NEXT_PUBLIC_SITE_DESCRIPTION?.trim() ||
+    'Plataforma white-label para catálogo, pedidos e checkout online.',
+  footerTagline:
+    process.env.NEXT_PUBLIC_FOOTER_TAGLINE?.trim() ||
+    'Operação digital pronta para vender com a sua marca.',
+  homeEyebrow:
+    process.env.NEXT_PUBLIC_HOME_EYEBROW?.trim() ||
+    'White-label para delivery e varejo local',
+  homeTitlePrefix:
+    process.env.NEXT_PUBLIC_HOME_TITLE_PREFIX?.trim() || 'Sua marca pronta para',
+  homeTitleHighlight:
+    process.env.NEXT_PUBLIC_HOME_TITLE_HIGHLIGHT?.trim() || 'vender',
+  homeTitleSuffix:
+    process.env.NEXT_PUBLIC_HOME_TITLE_SUFFIX?.trim() || 'online.',
+  homeCopy:
+    process.env.NEXT_PUBLIC_HOME_COPY?.trim() ||
+    'Catálogo, carrinho, checkout seguro e operação administrativa em uma única plataforma.',
+  homeImageAlt:
+    process.env.NEXT_PUBLIC_HOME_IMAGE_ALT?.trim() || `${brandName} em destaque`,
+  homeHighlightTitle:
+    process.env.NEXT_PUBLIC_HOME_HIGHLIGHT_TITLE?.trim() || 'Produtos em destaque',
+  productsDescription:
+    process.env.NEXT_PUBLIC_PRODUCTS_DESCRIPTION?.trim() ||
+    `Explore o catálogo completo da ${brandName}.`,
+  productsEyebrow:
+    process.env.NEXT_PUBLIC_PRODUCTS_EYEBROW?.trim() || 'Catálogo digital',
+  productsTitle:
+    process.env.NEXT_PUBLIC_PRODUCTS_TITLE?.trim() || `Cardápio ${brandName}`,
+  productsCopy:
+    process.env.NEXT_PUBLIC_PRODUCTS_COPY?.trim() ||
+    'Produtos organizados para conversão, operação rápida e atualização simples.',
+  loadingLabel:
+    process.env.NEXT_PUBLIC_LOADING_LABEL?.trim() || `Carregando ${brandName}...`,
+  apiErrorLabel:
+    process.env.NEXT_PUBLIC_API_ERROR_LABEL?.trim() ||
+    `Verifique a integração principal da ${brandName} e tente novamente.`,
+  statementDescriptor: sanitizeStatementDescriptor(
+    process.env.NEXT_PUBLIC_BRAND_STATEMENT_DESCRIPTOR?.trim() || brandName
+  ),
+  namespace
+}
+
+export const sessionCookieNames = {
+  token: `${namespace}_token`,
+  user: `${namespace}_user`
+}
+
+export const cartStorageKey = `${namespace}:cart`

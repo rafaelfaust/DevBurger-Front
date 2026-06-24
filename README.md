@@ -1,79 +1,126 @@
-# DevBurger Front
+# DevBurger
 
-Este é o repositório do projeto DevBurger Front, desenvolvido em React. O DevBurger Front é a interface de usuário de um aplicativo de pedidos online de hambúrgueres para desenvolvedores. Com esta aplicação, os desenvolvedores podem criar, personalizar e fazer pedidos de hambúrgueres exclusivos de acordo com suas preferências.
+Aplicação comercial de pedidos para hamburgueria construída com Next.js,
+TypeScript e Checkout Pro do Mercado Pago.
 
-## Requisitos
+## White-label
 
-Certifique-se de ter as seguintes ferramentas instaladas em sua máquina:
+O projeto agora possui uma camada inicial de white-label baseada em variáveis de
+ambiente. Nome da marca, wordmark, descrições, textos principais, namespace de
+cookies/carrinho e descriptor do checkout podem ser personalizados sem alterar o
+código. A integração com backend também aceita aliases genéricos para evitar
+acoplamento ao nome do cliente original.
 
-- Node.js (versão 10 ou superior)
-- NPM (gerenciador de pacotes do Node.js)
+## Stack
 
-## Instalação
+- Next.js 16 com App Router
+- React 19 e TypeScript
+- Mercado Pago SDK para criação de preferências e consulta de pagamentos
+- Cookies `httpOnly` para autenticação
+- Server Components para catálogo e páginas administrativas
 
-Siga as etapas abaixo para executar o projeto localmente:
+## Configuração local
 
-1. Clone este repositório para o seu ambiente de desenvolvimento local:
-   ```
-   git clone https://github.com/rafaelfaust/DevBurger-Front.git
-   ```
+Requer Node.js 20.19 ou superior.
 
-2. Navegue até o diretório do projeto:
-   ```
-   cd DevBurger-Front
-   ```
+```bash
+npm install
+copy .env.example .env.local
+npm run dev
+```
 
-3. Instale as dependências do projeto usando o NPM:
-   ```
-   npm install
-   ```
+Abra `http://localhost:3000`.
 
-4. Inicie o servidor de desenvolvimento:
-   ```
-   npm start
-   ```
+## Variáveis de ambiente
 
-5. O aplicativo será iniciado e estará acessível no seu navegador no endereço [http://localhost:3000](http://localhost:3000).
+```env
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_APP_NAMESPACE=devburger
+NEXT_PUBLIC_BRAND_NAME=DevBurger
+NEXT_PUBLIC_BRAND_WORDMARK_LEAD=DEV
+NEXT_PUBLIC_BRAND_WORDMARK_TRAIL=BURGER
+NEXT_PUBLIC_SITE_DESCRIPTION=Plataforma white-label para catálogo, pedidos e checkout online.
+NEXT_PUBLIC_FOOTER_TAGLINE=Operação digital pronta para vender com a sua marca.
+NEXT_PUBLIC_HOME_EYEBROW=White-label para delivery e varejo local
+NEXT_PUBLIC_HOME_TITLE_PREFIX=Sua marca pronta para
+NEXT_PUBLIC_HOME_TITLE_HIGHLIGHT=vender
+NEXT_PUBLIC_HOME_TITLE_SUFFIX=online.
+NEXT_PUBLIC_HOME_COPY=Catálogo, carrinho, checkout seguro e operação administrativa em uma única plataforma.
+NEXT_PUBLIC_HOME_IMAGE_ALT=DevBurger em destaque
+NEXT_PUBLIC_HOME_HIGHLIGHT_TITLE=Produtos em destaque
+NEXT_PUBLIC_PRODUCTS_DESCRIPTION=Explore o catálogo completo da DevBurger.
+NEXT_PUBLIC_PRODUCTS_EYEBROW=Catálogo digital
+NEXT_PUBLIC_PRODUCTS_TITLE=Cardápio DevBurger
+NEXT_PUBLIC_PRODUCTS_COPY=Produtos organizados para conversão, operação rápida e atualização simples.
+NEXT_PUBLIC_LOADING_LABEL=Carregando DevBurger...
+NEXT_PUBLIC_API_ERROR_LABEL=Verifique a integração principal da DevBurger e tente novamente.
+NEXT_PUBLIC_BRAND_STATEMENT_DESCRIPTOR=DEVBURGER
+APP_BACKEND_URL=http://localhost:3001
+MERCADO_PAGO_ACCESS_TOKEN=TEST-...
+MERCADO_PAGO_WEBHOOK_SECRET=
+APP_SERVICE_TOKEN=
+ALLOW_DEMO_CATALOG=true
+```
 
-## Recursos Utilizados
+- `MERCADO_PAGO_ACCESS_TOKEN`: credencial privada da aplicação Mercado Pago.
+- `MERCADO_PAGO_WEBHOOK_SECRET`: assinatura exibida em **Suas integrações >
+  Webhooks**.
+- `APP_BACKEND_URL`: endpoint principal do backend da operação. O alias legado
+  `DEV_BURGER_API_URL` continua aceito para compatibilidade.
+- `APP_SERVICE_TOKEN`: token de serviço usado pelo webhook para atualizar
+  pedidos. O alias legado `DEV_BURGER_SERVICE_TOKEN` continua aceito.
+- `NEXT_PUBLIC_APP_NAMESPACE`: evita colisão de cookies e carrinho entre marcas
+  diferentes que usem a mesma base.
+- `NEXT_PUBLIC_BRAND_*`: controla nome, identidade textual e conteúdo principal
+  da storefront.
+- `ALLOW_DEMO_CATALOG`: mantém o catálogo de demonstração disponível quando a
+  API externa está fora do ar. Use `false` em produção.
 
-O projeto DevBurger Front utiliza as seguintes tecnologias e recursos:
+Nunca exponha o Access Token com prefixo `NEXT_PUBLIC_`.
 
-- React Hooks: Utilizados para gerenciar o estado e o ciclo de vida dos componentes.
-- React Context: Utilizado para compartilhar dados entre os componentes sem a necessidade de passá-los explicitamente por meio de props.
-- Styled Components: Utilizados para escrever estilos CSS de forma mais modular e componentizada.
-- React Router: Utilizado para gerenciar as rotas e a navegação dentro do aplicativo.
-- FormatCurrency: Biblioteca auxiliar para formatação de valores monetários.
-- React Carousel: Componente de carrossel utilizado para exibir os hambúrgueres disponíveis no menu.
+## Mercado Pago
 
-## Uso
+O fluxo implementado usa Checkout Pro:
 
-O DevBurger Front é uma interface de usuário interativa para o aplicativo de pedidos de hambúrgueres. Os usuários podem:
+1. O navegador envia apenas IDs e quantidades.
+2. O servidor recupera produtos e preços do catálogo.
+3. Um pedido é criado no backend quando o cliente está autenticado.
+4. O Next cria uma preferência e redireciona para o Mercado Pago.
+5. O webhook valida a assinatura e consulta o pagamento diretamente na API.
+6. Pagamentos aprovados atualizam o pedido quando há um token de serviço.
 
-- Criar uma conta ou fazer login usando suas credenciais existentes.
-- Visualizar o menu de hambúrgueres disponíveis.
-- Personalizar seu hambúrguer selecionando os ingredientes desejados.
-- Adicionar hambúrgueres ao carrinho de compras.
-- Fazer o checkout e fornecer os detalhes do pedido.
-- Acompanhar o status do pedido.
+Cadastre a URL abaixo no painel do Mercado Pago:
 
-## Contribuição
+```text
+https://seu-dominio.com/api/webhooks/mercadopago
+```
 
-Se desejar contribuir para o projeto, siga as etapas abaixo:
+Para testes locais de webhook, use um túnel HTTPS e atualize
+`NEXT_PUBLIC_APP_URL`.
 
-1. Faça um fork deste repositório e clone-o para o seu ambiente local.
-2. Crie uma branch para a sua contribuição:
-   ```
-   git checkout -b minha-contribuicao
-   ```
-3. Faça as alterações e adições necessárias no código.
-4. Certifique-se de testar as suas alterações.
-5. Envie as suas alterações para o repositório remoto:
-   ```
-   git push origin minha-contribuicao
-   ```
-6. Abra um Pull Request no repositório original.
+## Comandos
+
+```bash
+npm run dev
+npm run lint
+npm run typecheck
+npm run build
+npm start
+```
+
+## Deploy
+
+O projeto requer runtime Node.js e não deve ser publicado como exportação
+estática, pois checkout, autenticação e webhooks executam no servidor.
+
+Antes de produção:
+
+- Use credenciais produtivas do Mercado Pago.
+- Defina `ALLOW_DEMO_CATALOG=false`.
+- Disponibilize a API em HTTPS.
+- Crie um token de serviço restrito à atualização de pedidos.
+- Configure domínio, webhook e política de privacidade.
 
 ## Licença
 
-Este projeto está licenciado sob a [MIT License](LICENSE).
+MIT. Consulte [LICENSE](LICENSE).
