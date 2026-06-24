@@ -1,3 +1,5 @@
+import type { CSSProperties } from 'react'
+
 function sanitizeNamespace(value: string) {
   return value
     .normalize('NFD')
@@ -30,6 +32,18 @@ const brandWordmarkTrail =
 const namespace =
   sanitizeNamespace(process.env.NEXT_PUBLIC_APP_NAMESPACE?.trim() || brandName) ||
   'storefront'
+
+const theme = {
+  ink: process.env.NEXT_PUBLIC_THEME_INK?.trim() || '#171512',
+  muted: process.env.NEXT_PUBLIC_THEME_MUTED?.trim() || '#6f6a62',
+  paper: process.env.NEXT_PUBLIC_THEME_PAPER?.trim() || '#f7f3eb',
+  card: process.env.NEXT_PUBLIC_THEME_CARD?.trim() || '#fffdf8',
+  primary: process.env.NEXT_PUBLIC_THEME_PRIMARY?.trim() || '#f5b82e',
+  primaryDark: process.env.NEXT_PUBLIC_THEME_PRIMARY_DARK?.trim() || '#d89300',
+  accent: process.env.NEXT_PUBLIC_THEME_ACCENT?.trim() || '#b9271e',
+  line: process.env.NEXT_PUBLIC_THEME_LINE?.trim() || '#ddd5c8',
+  success: process.env.NEXT_PUBLIC_THEME_SUCCESS?.trim() || '#1c7a45'
+}
 
 export const branding = {
   brandName,
@@ -75,8 +89,21 @@ export const branding = {
   statementDescriptor: sanitizeStatementDescriptor(
     process.env.NEXT_PUBLIC_BRAND_STATEMENT_DESCRIPTOR?.trim() || brandName
   ),
-  namespace
+  namespace,
+  theme
 }
+
+export const themeStyle = {
+  '--ink': theme.ink,
+  '--muted': theme.muted,
+  '--paper': theme.paper,
+  '--card': theme.card,
+  '--yellow': theme.primary,
+  '--yellow-dark': theme.primaryDark,
+  '--red': theme.accent,
+  '--line': theme.line,
+  '--green': theme.success
+} as CSSProperties
 
 export const sessionCookieNames = {
   token: `${namespace}_token`,

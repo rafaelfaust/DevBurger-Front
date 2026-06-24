@@ -55,6 +55,15 @@ NEXT_PUBLIC_PRODUCTS_COPY=Produtos organizados para conversão, operação rápi
 NEXT_PUBLIC_LOADING_LABEL=Carregando Sua Marca...
 NEXT_PUBLIC_API_ERROR_LABEL=Verifique a integração principal da Sua Marca e tente novamente.
 NEXT_PUBLIC_BRAND_STATEMENT_DESCRIPTOR=SUA MARCA
+NEXT_PUBLIC_THEME_INK=#171512
+NEXT_PUBLIC_THEME_MUTED=#6f6a62
+NEXT_PUBLIC_THEME_PAPER=#f7f3eb
+NEXT_PUBLIC_THEME_CARD=#fffdf8
+NEXT_PUBLIC_THEME_PRIMARY=#f5b82e
+NEXT_PUBLIC_THEME_PRIMARY_DARK=#d89300
+NEXT_PUBLIC_THEME_ACCENT=#b9271e
+NEXT_PUBLIC_THEME_LINE=#ddd5c8
+NEXT_PUBLIC_THEME_SUCCESS=#1c7a45
 APP_BACKEND_URL=http://localhost:3001
 MERCADO_PAGO_ACCESS_TOKEN=TEST-...
 MERCADO_PAGO_WEBHOOK_SECRET=
@@ -73,6 +82,8 @@ ALLOW_DEMO_CATALOG=true
   diferentes que usem a mesma base.
 - `NEXT_PUBLIC_BRAND_*`: controla nome, identidade textual e conteúdo principal
   da storefront.
+- `NEXT_PUBLIC_THEME_*`: controla as cores principais da interface sem editar o
+  CSS base.
 - `ALLOW_DEMO_CATALOG`: mantém o catálogo de demonstração disponível quando a
   API externa está fora do ar. Use `false` em produção.
 

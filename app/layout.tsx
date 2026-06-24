@@ -4,7 +4,7 @@ import { Barlow_Condensed, Inter } from 'next/font/google'
 import { Header } from '@/components/header'
 import { Providers } from '@/components/providers'
 import { getSessionUser } from '@/lib/auth'
-import { branding } from '@/lib/branding'
+import { branding, themeStyle } from '@/lib/branding'
 
 import './globals.css'
 
@@ -30,7 +30,7 @@ export default async function RootLayout({
 
   return (
     <html lang="pt-BR">
-      <body className={`${inter.variable} ${barlow.variable}`}>
+      <body className={`${inter.variable} ${barlow.variable}`} style={themeStyle}>
         <Providers>
           <Header user={user} />
           {children}
