@@ -1,7 +1,9 @@
 import type { Metadata } from 'next'
+import type { Viewport } from 'next'
 import { Barlow_Condensed, Inter } from 'next/font/google'
 
 import { Header } from '@/components/header'
+import { PwaRegister } from '@/components/pwa-register'
 import { Providers } from '@/components/providers'
 import { getSessionUser } from '@/lib/auth'
 import { getThemeStyle } from '@/lib/branding'
@@ -16,6 +18,18 @@ const barlow = Barlow_Condensed({
   weight: ['600', '700', '800', '900']
 })
 
+export async function generateViewport(): Promise<Viewport> {
+  const branding = await getTenantBranding()
+
+  return {
+    themeColor: branding.theme.primary,
+    colorScheme: 'light',
+    width: 'device-width',
+    initialScale: 1,
+    viewportFit: 'cover'
+  }
+}
+
 export async function generateMetadata(): Promise<Metadata> {
   const branding = await getTenantBranding()
 
@@ -25,6 +39,12 @@ export async function generateMetadata(): Promise<Metadata> {
       template: `%s | ${branding.brandName}`
     },
     description: branding.siteDescription,
+    manifest: '/manifest.webmanifest',
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: 'default',
+      title: branding.brandName
+    },
     icons: {
       icon: branding.assets.faviconPath,
       shortcut: branding.assets.faviconPath,
@@ -49,6 +69,7 @@ export default async function RootLayout({
         style={themeStyle}
       >
         <Providers>
+          <PwaRegister />
           <Header branding={branding} user={user} />
           {children}
           <footer>
