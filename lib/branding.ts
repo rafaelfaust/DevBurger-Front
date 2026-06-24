@@ -18,7 +18,7 @@ function sanitizeStatementDescriptor(value: string) {
     .toUpperCase()
 }
 
-const brandName = process.env.NEXT_PUBLIC_BRAND_NAME?.trim() || 'DevBurger'
+const brandName = process.env.NEXT_PUBLIC_BRAND_NAME?.trim() || 'Sua Marca'
 const brandWords = brandName.split(/\s+/).filter(Boolean)
 const brandWordmarkLead =
   process.env.NEXT_PUBLIC_BRAND_WORDMARK_LEAD?.trim() ||
@@ -37,22 +37,22 @@ export const branding = {
   brandWordmarkTrail: brandWordmarkTrail.toUpperCase(),
   siteDescription:
     process.env.NEXT_PUBLIC_SITE_DESCRIPTION?.trim() ||
-    'Plataforma white-label para catálogo, pedidos e checkout online.',
+    'Plataforma white-label para delivery, catálogo digital, pedidos e checkout online.',
   footerTagline:
     process.env.NEXT_PUBLIC_FOOTER_TAGLINE?.trim() ||
-    'Operação digital pronta para vender com a sua marca.',
+    'Operação digital pronta para vender com a identidade do seu cliente.',
   homeEyebrow:
     process.env.NEXT_PUBLIC_HOME_EYEBROW?.trim() ||
-    'White-label para delivery e varejo local',
+    'White-label para delivery e restaurantes',
   homeTitlePrefix:
-    process.env.NEXT_PUBLIC_HOME_TITLE_PREFIX?.trim() || 'Sua marca pronta para',
+    process.env.NEXT_PUBLIC_HOME_TITLE_PREFIX?.trim() || 'Seu delivery pronto para',
   homeTitleHighlight:
     process.env.NEXT_PUBLIC_HOME_TITLE_HIGHLIGHT?.trim() || 'vender',
   homeTitleSuffix:
     process.env.NEXT_PUBLIC_HOME_TITLE_SUFFIX?.trim() || 'online.',
   homeCopy:
     process.env.NEXT_PUBLIC_HOME_COPY?.trim() ||
-    'Catálogo, carrinho, checkout seguro e operação administrativa em uma única plataforma.',
+    'Catálogo, carrinho, checkout seguro e operação administrativa em uma única plataforma white-label.',
   homeImageAlt:
     process.env.NEXT_PUBLIC_HOME_IMAGE_ALT?.trim() || `${brandName} em destaque`,
   homeHighlightTitle:
