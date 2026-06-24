@@ -26,12 +26,7 @@ export function CartView() {
       <div className="cart-items">
         {items.map(item => (
           <article className="cart-item" key={item.id}>
-            <Image
-              alt={item.name}
-              height={100}
-              src={item.url}
-              width={120}
-            />
+            <Image alt={item.name} height={100} src={item.url} width={120} />
             <div className="cart-item-info">
               <h3>{item.name}</h3>
               <p>{formatCurrency(item.price)}</p>

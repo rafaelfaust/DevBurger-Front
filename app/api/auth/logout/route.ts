@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
-import { getSessionCookieNames } from '@/lib/branding'
+import { getSessionCookieNames } from '@/lib/branding-server'
 
 export async function POST(request: Request) {
   const cookieStore = await cookies()
