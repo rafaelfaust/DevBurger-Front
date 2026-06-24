@@ -35,9 +35,10 @@ type Database = {
   tenants: Record<string, TenantRecord>
 }
 
-const dataDir = path.join(process.cwd(), '.data')
+const runtimeRoot = process.env.VERCEL ? path.join('/tmp', 'devburger') : process.cwd()
+const dataDir = path.join(runtimeRoot, '.data')
 const dbPath = path.join(dataDir, 'store.json')
-const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
+const uploadsDir = path.join(runtimeRoot, 'uploads')
 
 export class LocalStoreError extends Error {
   constructor(
@@ -187,6 +188,13 @@ function sanitizeFileName(value: string) {
 }
 
 async function saveProductImage(file: File, namespace: string) {
+  if (process.env.VERCEL) {
+    throw new LocalStoreError(
+      'Upload de produto não esta disponivel neste ambiente sem armazenamento persistente',
+      503
+    )
+  }
+
   const tenantUploadDir = path.join(uploadsDir, namespace)
   await mkdir(tenantUploadDir, { recursive: true })
 
