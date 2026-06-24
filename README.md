@@ -11,6 +11,10 @@ cookies/carrinho e descriptor do checkout podem ser personalizados sem alterar o
 código. A integração com backend também aceita aliases genéricos para evitar
 acoplamento ao nome do cliente original.
 
+Também é possível resolver branding por domínio ou subdomínio usando
+`APP_TENANT_CONFIG`, o que permite servir múltiplos clientes a partir da mesma
+instância.
+
 ## Stack
 
 - Next.js 16 com App Router
@@ -78,6 +82,8 @@ ALLOW_DEMO_CATALOG=true
   `DEV_BURGER_API_URL` continua aceito para compatibilidade.
 - `APP_SERVICE_TOKEN`: token de serviço usado pelo webhook para atualizar
   pedidos. O alias legado `DEV_BURGER_SERVICE_TOKEN` continua aceito.
+- `APP_TENANT_CONFIG`: JSON opcional para mapear hosts para branding específico
+  por tenant.
 - `NEXT_PUBLIC_APP_NAMESPACE`: evita colisão de cookies e carrinho entre marcas
   diferentes que usem a mesma base.
 - `NEXT_PUBLIC_BRAND_*`: controla nome, identidade textual e conteúdo principal
@@ -88,6 +94,27 @@ ALLOW_DEMO_CATALOG=true
   API externa está fora do ar. Use `false` em produção.
 
 Nunca exponha o Access Token com prefixo `NEXT_PUBLIC_`.
+
+## Multi-tenant
+
+Use `APP_TENANT_CONFIG` para declarar tenants por host. A resolução aceita host
+exato e curingas simples como `*.cliente.com`.
+
+Exemplo:
+
+```env
+APP_TENANT_CONFIG=[{"key":"acai-prime","hosts":["acai.localhost","acai.exemplo.com","*.acai.exemplo.com"],"branding":{"brandName":"Acai Prime","brandWordmarkLead":"ACAI","brandWordmarkTrail":"PRIME","namespace":"acai-prime","siteDescription":"Delivery premium com checkout online.","homeTitleHighlight":"entregar","theme":{"primary":"#6d28d9","accent":"#1d4ed8","paper":"#f8f7ff"}}},{"key":"pizza-flow","hosts":["pizza.localhost","pizza.exemplo.com"],"branding":{"brandName":"Pizza Flow","brandWordmarkLead":"PIZZA","brandWordmarkTrail":"FLOW","namespace":"pizza-flow","homeTitleHighlight":"faturar","theme":{"primary":"#f97316","accent":"#b91c1c","paper":"#fff7ed"}}}]
+```
+
+Campos mais úteis dentro de `branding`:
+
+- `brandName`, `brandWordmarkLead`, `brandWordmarkTrail`
+- `namespace`
+- `siteDescription`, `footerTagline`
+- `homeTitlePrefix`, `homeTitleHighlight`, `homeTitleSuffix`
+- `productsTitle`, `productsDescription`
+- `statementDescriptor`
+- `theme.primary`, `theme.primaryDark`, `theme.accent`, `theme.paper`, `theme.card`
 
 ## Mercado Pago
 

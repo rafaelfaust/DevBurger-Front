@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers'
 
-import { sessionCookieNames } from '@/lib/branding'
+import { getSessionCookieNames } from '@/lib/branding'
 import { demoCategories, demoProducts } from '@/lib/demo-data'
 import type { Category, Order, Product } from '@/lib/types'
 
@@ -17,8 +17,10 @@ export class ApiError extends Error {
   }
 }
 
-const getToken = async () =>
-  (await cookies()).get(sessionCookieNames.token)?.value
+const getToken = async () => {
+  const sessionCookieNames = await getSessionCookieNames()
+  return (await cookies()).get(sessionCookieNames.token)?.value
+}
 
 export async function apiRequest<T>(
   path: string,

@@ -6,10 +6,16 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
 import { useCart } from '@/components/cart-context'
-import { branding } from '@/lib/branding'
+import type { Branding } from '@/lib/branding'
 import type { User } from '@/lib/types'
 
-export function Header({ user }: { user: User | null }) {
+export function Header({
+  user,
+  branding
+}: {
+  user: User | null
+  branding: Branding
+}) {
   const [open, setOpen] = useState(false)
   const { count } = useCart()
   const router = useRouter()

@@ -3,11 +3,15 @@ import Image from 'next/image'
 
 import { Catalog } from '@/components/catalog'
 import { getCategories, getProducts } from '@/lib/api'
-import { branding } from '@/lib/branding'
+import { getTenantBranding } from '@/lib/branding'
 
-export const metadata: Metadata = {
-  title: 'Cardápio',
-  description: branding.productsDescription
+export async function generateMetadata(): Promise<Metadata> {
+  const branding = await getTenantBranding()
+
+  return {
+    title: 'Cardápio',
+    description: branding.productsDescription
+  }
 }
 
 export default async function ProductsPage({
@@ -15,10 +19,11 @@ export default async function ProductsPage({
 }: {
   searchParams: Promise<{ categoria?: string }>
 }) {
-  const [{ categoria }, products, categories] = await Promise.all([
+  const [{ categoria }, products, categories, branding] = await Promise.all([
     searchParams,
     getProducts(),
-    getCategories()
+    getCategories(),
+    getTenantBranding()
   ])
 
   return (

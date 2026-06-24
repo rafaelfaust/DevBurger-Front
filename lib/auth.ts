@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers'
 
-import { sessionCookieNames } from '@/lib/branding'
+import { getSessionCookieNames } from '@/lib/branding'
 import type { User } from '@/lib/types'
 
 export class AuthError extends Error {
@@ -13,10 +13,12 @@ export class AuthError extends Error {
 }
 
 export async function getSessionToken(): Promise<string | null> {
+  const sessionCookieNames = await getSessionCookieNames()
   return (await cookies()).get(sessionCookieNames.token)?.value ?? null
 }
 
 export async function getSessionUser(): Promise<User | null> {
+  const sessionCookieNames = await getSessionCookieNames()
   const value = (await cookies()).get(sessionCookieNames.user)?.value
   if (!value) return null
 

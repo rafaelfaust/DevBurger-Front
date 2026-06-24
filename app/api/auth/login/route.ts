@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 
 import { apiRequest, ApiError } from '@/lib/api'
-import { sessionCookieNames } from '@/lib/branding'
+import { getSessionCookieNames } from '@/lib/branding'
 import type { User } from '@/lib/types'
 
 const schema = z.object({
@@ -22,6 +22,7 @@ export async function POST(request: Request) {
     })
     const { token, ...user } = data
     const cookieStore = await cookies()
+    const sessionCookieNames = await getSessionCookieNames(request)
 
     cookieStore.set(sessionCookieNames.token, token, {
       httpOnly: true,

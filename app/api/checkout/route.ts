@@ -6,7 +6,7 @@ import { z } from 'zod'
 
 import { createBackendOrder, getProducts } from '@/lib/api'
 import { getSessionUser } from '@/lib/auth'
-import { branding } from '@/lib/branding'
+import { getTenantBranding } from '@/lib/branding'
 
 const schema = z.object({
   items: z
@@ -22,6 +22,7 @@ const schema = z.object({
 
 export async function POST(request: Request) {
   try {
+    const branding = await getTenantBranding(request)
     const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN
     if (!accessToken) {
       return NextResponse.json(

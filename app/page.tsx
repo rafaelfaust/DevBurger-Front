@@ -4,10 +4,10 @@ import Link from 'next/link'
 
 import { ProductCard } from '@/components/product-card'
 import { getProducts } from '@/lib/api'
-import { branding } from '@/lib/branding'
+import { getTenantBranding } from '@/lib/branding'
 
 export default async function HomePage() {
-  const products = await getProducts()
+  const [products, branding] = await Promise.all([getProducts(), getTenantBranding()])
   const offers = products.filter(product => product.offer).slice(0, 4)
   const highlights = offers.length ? offers : products.slice(0, 4)
 
