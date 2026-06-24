@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers'
 
-import { getSessionCookieNames } from '@/lib/branding'
+import { getSessionCookieNames } from '@/lib/branding-server'
 import type { User } from '@/lib/types'
 
 export class AuthError extends Error {

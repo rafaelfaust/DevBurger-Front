@@ -3,7 +3,7 @@ import Image from 'next/image'
 
 import { Catalog } from '@/components/catalog'
 import { getCategories, getProducts } from '@/lib/api'
-import { getTenantBranding } from '@/lib/branding'
+import { getTenantBranding } from '@/lib/branding-server'
 
 export async function generateMetadata(): Promise<Metadata> {
   const branding = await getTenantBranding()
@@ -34,7 +34,7 @@ export default async function ProductsPage({
           fill
           priority
           sizes="100vw"
-          src="/assets/bannerProduct.webp"
+          src={branding.assets.catalogHeroPath}
         />
         <div>
           <p className="eyebrow">{branding.productsEyebrow}</p>

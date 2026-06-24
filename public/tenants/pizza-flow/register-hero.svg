@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1100" viewBox="0 0 900 1100">
+  <rect width="900" height="1100" fill="#fff7ed" />
+  <rect x="108" y="124" width="684" height="852" rx="54" fill="#7c2d12" />
+  <path d="M256 264h388L450 598z" fill="#f97316" />
+  <text x="450" y="782" fill="#fff7ed" font-family="Arial, sans-serif" font-size="66" font-weight="700" text-anchor="middle">Crie sua conta</text>
+</svg>

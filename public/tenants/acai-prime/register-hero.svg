@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1100" viewBox="0 0 900 1100">
+  <rect width="900" height="1100" fill="#f8f7ff" />
+  <rect x="124" y="148" width="652" height="804" rx="56" fill="#2b124c" />
+  <circle cx="450" cy="340" r="136" fill="#6d28d9" />
+  <text x="450" y="730" fill="#ffffff" font-family="Arial, sans-serif" font-size="66" font-weight="700" text-anchor="middle">Nova conta</text>
+</svg>

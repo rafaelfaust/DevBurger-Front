@@ -1,7 +1,5 @@
 import type { CSSProperties } from 'react'
 
-import { headers } from 'next/headers'
-
 type Theme = {
   ink: string
   muted: string
@@ -12,6 +10,15 @@ type Theme = {
   accent: string
   line: string
   success: string
+}
+
+type Assets = {
+  logoPath: string
+  faviconPath: string
+  homeHeroPath: string
+  catalogHeroPath: string
+  loginImagePath: string
+  registerImagePath: string
 }
 
 export type Branding = {
@@ -36,11 +43,13 @@ export type Branding = {
   statementDescriptor: string
   namespace: string
   theme: Theme
+  assets: Assets
 }
 
-type BrandingOverrides = Partial<Omit<Branding, 'theme' | 'statementDescriptor'>> & {
+type BrandingOverrides = Partial<Omit<Branding, 'theme' | 'statementDescriptor' | 'assets'>> & {
   statementDescriptor?: string
   theme?: Partial<Theme>
+  assets?: Partial<Assets>
 }
 
 type TenantConfig = {
@@ -69,7 +78,7 @@ function sanitizeStatementDescriptor(value: string) {
     .toUpperCase()
 }
 
-function normalizeHost(value: string) {
+export function normalizeHost(value: string) {
   return value.trim().toLowerCase().replace(/:\d+$/, '')
 }
 
@@ -84,6 +93,23 @@ function createBaseTheme(): Theme {
     accent: process.env.NEXT_PUBLIC_THEME_ACCENT?.trim() || '#b9271e',
     line: process.env.NEXT_PUBLIC_THEME_LINE?.trim() || '#ddd5c8',
     success: process.env.NEXT_PUBLIC_THEME_SUCCESS?.trim() || '#1c7a45'
+  }
+}
+
+function createBaseAssets(): Assets {
+  return {
+    logoPath: process.env.NEXT_PUBLIC_BRAND_LOGO_PATH?.trim() || '/assets/logo.png',
+    faviconPath:
+      process.env.NEXT_PUBLIC_BRAND_FAVICON_PATH?.trim() || '/assets/logo.png',
+    homeHeroPath:
+      process.env.NEXT_PUBLIC_BRAND_HOME_HERO_PATH?.trim() || '/assets/bannerHome.webp',
+    catalogHeroPath:
+      process.env.NEXT_PUBLIC_BRAND_CATALOG_HERO_PATH?.trim() ||
+      '/assets/bannerProduct.webp',
+    loginImagePath:
+      process.env.NEXT_PUBLIC_BRAND_LOGIN_IMAGE_PATH?.trim() || '/assets/login-img.webp',
+    registerImagePath:
+      process.env.NEXT_PUBLIC_BRAND_REGISTER_IMAGE_PATH?.trim() || '/assets/user-img.webp'
   }
 }
 
@@ -102,6 +128,7 @@ function buildBranding(overrides: BrandingOverrides = {}): Branding {
   const namespaceSource =
     overrides.namespace ?? process.env.NEXT_PUBLIC_APP_NAMESPACE?.trim() ?? brandName
   const theme = { ...createBaseTheme(), ...overrides.theme }
+  const assets = { ...createBaseAssets(), ...overrides.assets }
 
   return {
     brandName,
@@ -173,7 +200,8 @@ function buildBranding(overrides: BrandingOverrides = {}): Branding {
         brandName
     ),
     namespace: sanitizeNamespace(namespaceSource) || 'storefront',
-    theme
+    theme,
+    assets
   }
 }
 
@@ -210,19 +238,6 @@ function hostMatches(pattern: string, host: string) {
   return host === pattern
 }
 
-async function getRequestHost(request?: Request) {
-  if (request) {
-    return normalizeHost(
-      request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? new URL(request.url).host
-    )
-  }
-
-  const headerStore = await headers()
-  return normalizeHost(
-    headerStore.get('x-forwarded-host') ?? headerStore.get('host') ?? ''
-  )
-}
-
 const tenantConfig = parseTenantConfig()
 
 export const branding = buildBranding()
@@ -241,21 +256,14 @@ export function getThemeStyle(value: Branding): CSSProperties {
   } as CSSProperties
 }
 
-export async function getTenantBranding(request?: Request): Promise<Branding> {
-  const host = await getRequestHost(request)
-  const tenant = tenantConfig.find(item => item.hosts.some(pattern => hostMatches(pattern, host)))
+export function resolveTenantBranding(host?: string): Branding {
+  const normalizedHost = normalizeHost(host ?? '')
+  const tenant = tenantConfig.find(item =>
+    item.hosts.some(pattern => hostMatches(pattern, normalizedHost))
+  )
 
   if (!tenant) return branding
   return buildBranding(tenant.branding)
-}
-
-export async function getSessionCookieNames(request?: Request) {
-  const resolvedBranding = await getTenantBranding(request)
-
-  return {
-    token: `${resolvedBranding.namespace}_token`,
-    user: `${resolvedBranding.namespace}_user`
-  }
 }
 
 export const cartStorageKey = `${branding.namespace}:cart`

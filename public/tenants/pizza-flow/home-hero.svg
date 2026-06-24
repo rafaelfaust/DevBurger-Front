@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">
+  <rect width="1200" height="900" fill="#fff7ed" />
+  <rect x="72" y="72" width="1056" height="756" rx="64" fill="#7c2d12" />
+  <path d="M804 180h222L892 470z" fill="#f97316" />
+  <circle cx="886" cy="268" r="18" fill="#b91c1c" />
+  <circle cx="950" cy="320" r="18" fill="#b91c1c" />
+  <circle cx="910" cy="384" r="18" fill="#b91c1c" />
+  <text x="150" y="250" fill="#fff7ed" font-family="Arial, sans-serif" font-size="92" font-weight="700">Pizza Flow</text>
+  <text x="150" y="332" fill="#fed7aa" font-family="Arial, sans-serif" font-size="40">Operacao white-label com tema do cliente</text>
+</svg>

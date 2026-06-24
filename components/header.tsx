@@ -1,6 +1,7 @@
 'use client'
 
 import { LogOut, Menu, ShoppingBag, UserRound, X } from 'lucide-react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -29,6 +30,16 @@ export function Header({
   return (
     <header className="site-header">
       <Link className="brand" href="/">
+        {branding.assets.logoPath ? (
+          <Image
+            alt={branding.brandName}
+            className="brand-mark"
+            height={42}
+            priority
+            src={branding.assets.logoPath}
+            width={42}
+          />
+        ) : null}
         <span>{branding.brandWordmarkLead}</span>
         {branding.brandWordmarkTrail ? ` ${branding.brandWordmarkTrail}` : ''}
       </Link>

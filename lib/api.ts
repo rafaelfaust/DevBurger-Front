@@ -1,12 +1,15 @@
 import { cookies } from 'next/headers'
 
-import { getSessionCookieNames } from '@/lib/branding'
-import { demoCategories, demoProducts } from '@/lib/demo-data'
+import { getSessionCookieNames } from '@/lib/branding-server'
+import { getSessionUser } from '@/lib/auth'
+import {
+  createLocalOrder,
+  listLocalCategories,
+  listLocalOrders,
+  listLocalProducts,
+  LocalStoreError
+} from '@/lib/local-store'
 import type { Category, Order, Product } from '@/lib/types'
-
-const baseUrl = (
-  process.env.APP_BACKEND_URL ?? process.env.DEV_BURGER_API_URL
-)?.replace(/\/$/, '')
 
 export class ApiError extends Error {
   constructor(
@@ -17,62 +20,48 @@ export class ApiError extends Error {
   }
 }
 
-const getToken = async () => {
+export const getToken = async () => {
   const sessionCookieNames = await getSessionCookieNames()
   return (await cookies()).get(sessionCookieNames.token)?.value
 }
 
-export async function apiRequest<T>(
-  path: string,
-  init: RequestInit = {},
-  token?: string
-): Promise<T> {
-  if (!baseUrl) throw new ApiError('APP_BACKEND_URL não configurada', 503)
-
-  const response = await fetch(`${baseUrl}/${path.replace(/^\//, '')}`, {
-    ...init,
-    headers: {
-      ...(init.body instanceof FormData
-        ? {}
-        : { 'Content-Type': 'application/json' }),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...init.headers
-    },
-    cache: 'no-store'
-  })
-
-  const data = await response.json().catch(() => null)
-  if (!response.ok) {
-    throw new ApiError(data?.message ?? 'Falha na comunicação com a API', response.status)
-  }
-
-  return data as T
-}
-
-const demoEnabled = process.env.ALLOW_DEMO_CATALOG === 'true'
-
 export async function getProducts(): Promise<Product[]> {
   try {
-    return await apiRequest<Product[]>('products')
+    return await listLocalProducts()
   } catch (error) {
-    if (demoEnabled) return demoProducts
-    throw error
+    if (error instanceof LocalStoreError) {
+      throw new ApiError(error.message, error.status)
+    }
+
+    throw new ApiError('Falha ao carregar produtos', 500)
   }
 }
 
 export async function getCategories(): Promise<Category[]> {
   try {
-    return await apiRequest<Category[]>('categories')
+    return await listLocalCategories()
   } catch (error) {
-    if (demoEnabled) return demoCategories
-    throw error
+    if (error instanceof LocalStoreError) {
+      throw new ApiError(error.message, error.status)
+    }
+
+    throw new ApiError('Falha ao carregar categorias', 500)
   }
 }
 
 export async function getOrders(): Promise<Order[]> {
   const token = await getToken()
   if (!token) throw new ApiError('Não autenticado', 401)
-  return apiRequest<Order[]>('orders', {}, token)
+
+  try {
+    return await listLocalOrders()
+  } catch (error) {
+    if (error instanceof LocalStoreError) {
+      throw new ApiError(error.message, error.status)
+    }
+
+    throw new ApiError('Falha ao carregar pedidos', 500)
+  }
 }
 
 export async function createBackendOrder(
@@ -81,13 +70,19 @@ export async function createBackendOrder(
   const token = await getToken()
   if (!token) return null
 
+  const user = await getSessionUser()
+  if (!user) return null
+
   try {
-    return await apiRequest<{ _id?: string; id?: string }>(
-      'orders',
-      { method: 'POST', body: JSON.stringify({ products }) },
-      token
-    )
-  } catch {
+    return await createLocalOrder({
+      products,
+      user: {
+        name: user.name,
+        email: user.email
+      }
+    })
+  } catch (error) {
+    if (error instanceof LocalStoreError) return null
     return null
   }
 }

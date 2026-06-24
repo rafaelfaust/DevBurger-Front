@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700">
+  <rect width="1200" height="700" fill="#f8f7ff" />
+  <rect x="62" y="72" width="1076" height="556" rx="42" fill="#2b124c" />
+  <circle cx="930" cy="220" r="128" fill="#7c3aed" />
+  <circle cx="930" cy="220" r="68" fill="#f59e0b" />
+  <text x="132" y="250" fill="#ffffff" font-family="Arial, sans-serif" font-size="78" font-weight="700">Cardapio Premium</text>
+  <text x="132" y="330" fill="#ddd6fe" font-family="Arial, sans-serif" font-size="34">Combos, bebidas e destaques do tenant</text>
+</svg>

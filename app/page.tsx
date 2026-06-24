@@ -4,10 +4,13 @@ import Link from 'next/link'
 
 import { ProductCard } from '@/components/product-card'
 import { getProducts } from '@/lib/api'
-import { getTenantBranding } from '@/lib/branding'
+import { getTenantBranding } from '@/lib/branding-server'
 
 export default async function HomePage() {
-  const [products, branding] = await Promise.all([getProducts(), getTenantBranding()])
+  const [products, branding] = await Promise.all([
+    getProducts(),
+    getTenantBranding()
+  ])
   const offers = products.filter(product => product.offer).slice(0, 4)
   const highlights = offers.length ? offers : products.slice(0, 4)
 
@@ -17,7 +20,8 @@ export default async function HomePage() {
         <div className="hero-content">
           <p className="eyebrow">{branding.homeEyebrow}</p>
           <h1>
-            {branding.homeTitlePrefix} <span>{branding.homeTitleHighlight}</span>{' '}
+            {branding.homeTitlePrefix}{' '}
+            <span>{branding.homeTitleHighlight}</span>{' '}
             {branding.homeTitleSuffix}
           </h1>
           <p className="hero-copy">{branding.homeCopy}</p>
@@ -37,7 +41,7 @@ export default async function HomePage() {
               fill
               priority
               sizes="(max-width: 900px) 100vw, 50vw"
-              src="/assets/bannerHome.webp"
+              src={branding.assets.homeHeroPath}
             />
           </div>
           <div className="hero-stamp">100% artesanal</div>

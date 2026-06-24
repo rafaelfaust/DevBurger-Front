@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">
+  <defs>
+    <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1f1137" />
+      <stop offset="100%" stop-color="#6d28d9" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="900" fill="url(#g1)" />
+  <circle cx="870" cy="260" r="180" fill="#f59e0b" opacity="0.82" />
+  <circle cx="870" cy="260" r="108" fill="#fde68a" opacity="0.9" />
+  <path d="M220 630c110-120 224-180 342-180s232 60 342 180" fill="none" stroke="#f8f7ff" stroke-width="44" stroke-linecap="round" opacity="0.9" />
+  <text x="128" y="190" fill="#f8f7ff" font-family="Arial, sans-serif" font-size="92" font-weight="700">Acai Prime</text>
+  <text x="128" y="280" fill="#e9d5ff" font-family="Arial, sans-serif" font-size="42">Entrega premium com identidade proprIa</text>
+</svg>

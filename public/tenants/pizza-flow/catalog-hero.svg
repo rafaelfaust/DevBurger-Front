@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700">
+  <rect width="1200" height="700" fill="#7c2d12" />
+  <path d="M856 120h224L942 470z" fill="#f97316" />
+  <circle cx="932" cy="236" r="16" fill="#b91c1c" />
+  <circle cx="976" cy="302" r="16" fill="#b91c1c" />
+  <text x="126" y="240" fill="#fff7ed" font-family="Arial, sans-serif" font-size="78" font-weight="700">Cardapio da Marca</text>
+  <text x="126" y="322" fill="#fdba74" font-family="Arial, sans-serif" font-size="34">Tema, logo e imagens por tenant</text>
+</svg>

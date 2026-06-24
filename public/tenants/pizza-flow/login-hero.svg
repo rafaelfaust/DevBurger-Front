@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1100" viewBox="0 0 900 1100">
+  <rect width="900" height="1100" fill="#7c2d12" />
+  <path d="M220 196h460L450 640z" fill="#f97316" />
+  <circle cx="430" cy="336" r="20" fill="#b91c1c" />
+  <circle cx="506" cy="416" r="20" fill="#b91c1c" />
+  <text x="450" y="808" fill="#fff7ed" font-family="Arial, sans-serif" font-size="68" font-weight="700" text-anchor="middle">Entre e acompanhe</text>
+</svg>

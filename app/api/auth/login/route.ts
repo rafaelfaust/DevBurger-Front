@@ -2,25 +2,18 @@ import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 
-import { apiRequest, ApiError } from '@/lib/api'
-import { getSessionCookieNames } from '@/lib/branding'
-import type { User } from '@/lib/types'
+import { getSessionCookieNames } from '@/lib/branding-server'
+import { createLocalSession, LocalStoreError } from '@/lib/local-store'
 
 const schema = z.object({
   email: z.email(),
   password: z.string().min(6)
 })
 
-type LoginResponse = User & { token: string }
-
 export async function POST(request: Request) {
   try {
     const credentials = schema.parse(await request.json())
-    const data = await apiRequest<LoginResponse>('sessions', {
-      method: 'POST',
-      body: JSON.stringify(credentials)
-    })
-    const { token, ...user } = data
+    const { token, user } = await createLocalSession(credentials)
     const cookieStore = await cookies()
     const sessionCookieNames = await getSessionCookieNames(request)
 
@@ -41,7 +34,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ user })
   } catch (error) {
-    const status = error instanceof ApiError ? error.status : 400
+    const status = error instanceof LocalStoreError ? error.status : 400
     return NextResponse.json(
       { message: status === 401 ? 'E-mail ou senha inválidos' : 'Não foi possível entrar' },
       { status }

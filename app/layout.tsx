@@ -4,7 +4,8 @@ import { Barlow_Condensed, Inter } from 'next/font/google'
 import { Header } from '@/components/header'
 import { Providers } from '@/components/providers'
 import { getSessionUser } from '@/lib/auth'
-import { getTenantBranding, getThemeStyle } from '@/lib/branding'
+import { getThemeStyle } from '@/lib/branding'
+import { getTenantBranding } from '@/lib/branding-server'
 
 import './globals.css'
 
@@ -23,25 +24,38 @@ export async function generateMetadata(): Promise<Metadata> {
       default: branding.brandName,
       template: `%s | ${branding.brandName}`
     },
-    description: branding.siteDescription
+    description: branding.siteDescription,
+    icons: {
+      icon: branding.assets.faviconPath,
+      shortcut: branding.assets.faviconPath,
+      apple: branding.assets.faviconPath
+    }
   }
 }
 
 export default async function RootLayout({
   children
 }: Readonly<{ children: React.ReactNode }>) {
-  const [user, branding] = await Promise.all([getSessionUser(), getTenantBranding()])
+  const [user, branding] = await Promise.all([
+    getSessionUser(),
+    getTenantBranding()
+  ])
   const themeStyle = getThemeStyle(branding)
 
   return (
     <html lang="pt-BR">
-      <body className={`${inter.variable} ${barlow.variable}`} style={themeStyle}>
+      <body
+        className={`${inter.variable} ${barlow.variable}`}
+        style={themeStyle}
+      >
         <Providers>
           <Header branding={branding} user={user} />
           {children}
           <footer>
             <span>{branding.brandWordmarkLead}</span>
-            {branding.brandWordmarkTrail ? ` ${branding.brandWordmarkTrail}` : ''}
+            {branding.brandWordmarkTrail
+              ? ` ${branding.brandWordmarkTrail}`
+              : ''}
             {' · '}
             {branding.footerTagline}
           </footer>

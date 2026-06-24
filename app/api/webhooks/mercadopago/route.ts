@@ -6,7 +6,7 @@ import {
 } from 'mercadopago'
 import { NextResponse } from 'next/server'
 
-import { apiRequest } from '@/lib/api'
+import { markLocalOrderPaid } from '@/lib/local-store'
 
 type Notification = {
   type?: string
@@ -46,22 +46,11 @@ export async function POST(request: Request) {
   const payment = await new Payment(client).get({ id: dataId })
 
   if (payment.status === 'approved' && payment.external_reference) {
-    const serviceToken =
-      process.env.APP_SERVICE_TOKEN ?? process.env.DEV_BURGER_SERVICE_TOKEN
-    if (serviceToken) {
-      await apiRequest(
-        `orders/${payment.external_reference}`,
-        {
-          method: 'PUT',
-          body: JSON.stringify({
-            status: 'Pedido realizado',
-            payment_id: String(payment.id),
-            payment_status: payment.status
-          })
-        },
-        serviceToken
-      )
-    }
+    await markLocalOrderPaid({
+      id: String(payment.external_reference),
+      paymentId: String(payment.id),
+      paymentStatus: payment.status
+    })
   }
 
   return NextResponse.json({ received: true })

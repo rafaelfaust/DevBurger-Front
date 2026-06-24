@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1100" viewBox="0 0 900 1100">
+  <rect width="900" height="1100" fill="#1f1137" />
+  <circle cx="450" cy="356" r="190" fill="#6d28d9" />
+  <circle cx="450" cy="356" r="96" fill="#f59e0b" />
+  <text x="450" y="768" fill="#f8f7ff" font-family="Arial, sans-serif" font-size="70" font-weight="700" text-anchor="middle">Volte para vender</text>
+</svg>

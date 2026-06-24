@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
+  <rect width="240" height="240" rx="56" fill="#2b124c" />
+  <circle cx="120" cy="102" r="54" fill="#6d28d9" />
+  <circle cx="120" cy="102" r="28" fill="#f59e0b" opacity="0.92" />
+  <path d="M62 164c16-18 36-27 58-27s42 9 58 27" fill="none" stroke="#f8f7ff" stroke-width="18" stroke-linecap="round" />
+  <text x="120" y="214" fill="#f8f7ff" font-family="Arial, sans-serif" font-size="32" font-weight="700" text-anchor="middle">ACAI</text>
+</svg>

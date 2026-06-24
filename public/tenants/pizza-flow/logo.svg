@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
+  <rect width="240" height="240" rx="56" fill="#7c2d12" />
+  <path d="M58 78h124l-62 108z" fill="#f97316" />
+  <circle cx="108" cy="120" r="10" fill="#b91c1c" />
+  <circle cx="140" cy="146" r="10" fill="#b91c1c" />
+  <circle cx="132" cy="102" r="10" fill="#b91c1c" />
+  <text x="120" y="214" fill="#fff7ed" font-family="Arial, sans-serif" font-size="30" font-weight="700" text-anchor="middle">FLOW</text>
+</svg>

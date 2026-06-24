@@ -6,7 +6,8 @@ import { z } from 'zod'
 
 import { createBackendOrder, getProducts } from '@/lib/api'
 import { getSessionUser } from '@/lib/auth'
-import { getTenantBranding } from '@/lib/branding'
+import { getTenantBranding } from '@/lib/branding-server'
+import { markLocalOrderPaid } from '@/lib/local-store'
 
 const schema = z.object({
   items: z
@@ -24,7 +25,9 @@ export async function POST(request: Request) {
   try {
     const branding = await getTenantBranding(request)
     const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN
-    if (!accessToken) {
+    const demoCheckout = process.env.ALLOW_DEMO_CHECKOUT === 'true'
+
+    if (!accessToken && !demoCheckout) {
       return NextResponse.json(
         { message: 'Mercado Pago ainda não foi configurado' },
         { status: 503 }
@@ -58,6 +61,23 @@ export async function POST(request: Request) {
     const appUrl =
       process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') ??
       new URL(request.url).origin
+
+    if (demoCheckout) {
+      await markLocalOrderPaid({
+        id: String(externalReference),
+        paymentId: `demo-${Date.now()}`,
+        paymentStatus: 'approved'
+      })
+
+      return NextResponse.json({
+        checkoutUrl: `${appUrl}/pagamento/sucesso?pedido=${externalReference}`,
+        preferenceId: `demo-${externalReference}`
+      })
+    }
+
+    if (!accessToken) {
+      throw new Error('Mercado Pago ainda não foi configurado')
+    }
 
     const client = new MercadoPagoConfig({
       accessToken,
