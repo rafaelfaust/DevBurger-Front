@@ -5,15 +5,10 @@ Checkout Pro do Mercado Pago.
 
 ## White-label
 
-O projeto agora possui uma camada inicial de white-label baseada em variáveis de
-ambiente. Nome da marca, wordmark, descrições, textos principais, namespace de
-cookies/carrinho e descriptor do checkout podem ser personalizados sem alterar o
-código. A integração com backend também aceita aliases genéricos para evitar
-acoplamento ao nome do cliente original.
-
-Também é possível resolver branding por domínio ou subdomínio usando
-`APP_TENANT_CONFIG`, o que permite servir múltiplos clientes a partir da mesma
-instância.
+Cada loja (restaurante) fica no banco com sua marca: nome, textos, cores e
+imagens. O dono edita tudo em **Admin → Aparência**, e taxa de entrega e formas
+de pagamento em **Admin → Configurações**. Uma única instância serve várias
+lojas; a loja é escolhida pelo endereço acessado (veja Multi-tenant).
 
 ## Stack
 
@@ -86,20 +81,13 @@ APP_SERVICE_TOKEN=
 - `MERCADO_PAGO_ACCESS_TOKEN`: credencial privada da aplicação Mercado Pago.
 - `MERCADO_PAGO_WEBHOOK_SECRET`: assinatura exibida em **Suas integrações >
   Webhooks**.
-- `APP_BACKEND_URL`: legado opcional. A storefront agora usa persistência local
-  dentro do Next por padrão.
-- `APP_SERVICE_TOKEN`: token de serviço usado pelo webhook para atualizar
-  pedidos. O alias legado `DEV_BURGER_SERVICE_TOKEN` continua aceito.
-- `APP_TENANT_CONFIG`: JSON opcional para mapear hosts para branding específico
-  por tenant.
-- `NEXT_PUBLIC_APP_NAMESPACE`: evita colisão de cookies e carrinho entre marcas
-  diferentes que usem a mesma base.
-- `NEXT_PUBLIC_BRAND_*`: controla nome, identidade textual e conteúdo principal
-  da storefront.
-- `NEXT_PUBLIC_BRAND_*_PATH`: controla logo, favicon e imagens principais por
-  marca.
-- `NEXT_PUBLIC_THEME_*`: controla as cores principais da interface sem editar o
-  CSS base.
+- `NEXT_PUBLIC_APP_NAMESPACE`: slug da loja padrão, aberta quando o endereço
+  não corresponde a nenhuma loja (localhost, `*.vercel.app`).
+- `PLATFORM_DOMAIN`: domínio da plataforma. Com `devburger.app`, o endereço
+  `pizzaria.devburger.app` abre a loja de slug `pizzaria`.
+- `NEXT_PUBLIC_BRAND_*`, `NEXT_PUBLIC_THEME_*` e `APP_TENANT_CONFIG`: só servem
+  de semente para o `npm run db:seed`. Depois disso a marca é editada pelo
+  painel.
 - `DATABASE_URL`: Postgres (Neon, Supabase etc.). Vazio em desenvolvimento usa
   PGlite em `.data/pglite`. Obrigatório em produção.
 - `ALLOW_DEMO_CHECKOUT`: simula aprovação local do checkout quando você quer
@@ -109,9 +97,16 @@ Nunca exponha o Access Token com prefixo `NEXT_PUBLIC_`.
 
 ## Multi-tenant
 
-Use `APP_TENANT_CONFIG` para declarar tenants por host. A resolução aceita host
-exato e curingas simples como `*.cliente.com`, o que já cobre domínio
-customizado em produção.
+A loja de cada requisição é encontrada nesta ordem:
+
+1. Domínio próprio cadastrado na tabela `tenant_domains`
+   (ex.: `pedidos.hamburgueria.com.br`).
+2. Subdomínio de `PLATFORM_DOMAIN` (ex.: `pizzaria.devburger.app`).
+3. Loja padrão (`NEXT_PUBLIC_APP_NAMESPACE`).
+
+Para criar lojas de exemplo, descreva-as em `APP_TENANT_CONFIG` e rode
+`npm run db:seed`. Os `hosts` viram domínios da loja; curingas (`*.`) são
+ignorados, pois `PLATFORM_DOMAIN` cobre esse caso.
 
 Exemplo:
 
@@ -122,7 +117,7 @@ APP_TENANT_CONFIG='[{"key":"acai-prime","hosts":["acai.localhost","acai.exemplo.
 Importante: como o JSON pode conter `#` nas cores do tema, coloque o valor
 inteiro entre aspas simples no `.env.local`.
 
-Campos mais úteis dentro de `branding`:
+Campos mais úteis dentro de `branding` (`namespace` vira o slug da loja):
 
 - `brandName`, `brandWordmarkLead`, `brandWordmarkTrail`
 - `namespace`
