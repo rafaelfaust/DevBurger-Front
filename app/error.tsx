@@ -1,7 +1,5 @@
 'use client'
 
-import { branding } from '@/lib/branding'
-
 export default function ErrorPage({
   reset
 }: {
@@ -11,7 +9,7 @@ export default function ErrorPage({
   return (
     <main className="empty-state error-state">
       <h1>Não conseguimos carregar esta página</h1>
-      <p>{branding.apiErrorLabel}</p>
+      <p>Tente novamente em alguns instantes.</p>
       <button className="button" onClick={reset}>
         Tentar novamente
       </button>

@@ -24,7 +24,7 @@ const schema = z.object({
 
 export async function POST(request: Request) {
   try {
-    const branding = await getTenantBranding(request)
+    const branding = await getTenantBranding()
     const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN
 
     const user = await getSessionUser()

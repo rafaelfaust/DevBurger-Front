@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react'
 
-type Theme = {
+export type Theme = {
   ink: string
   muted: string
   paper: string
@@ -12,7 +12,7 @@ type Theme = {
   success: string
 }
 
-type Assets = {
+export type Assets = {
   logoPath: string
   faviconPath: string
   homeHeroPath: string
@@ -46,22 +46,39 @@ export type Branding = {
   assets: Assets
 }
 
-type BrandingOverrides = Partial<Omit<Branding, 'theme' | 'statementDescriptor' | 'assets'>> & {
-  statementDescriptor?: string
+// O que cada loja guarda no banco: só os campos que personalizou.
+export type BrandingOverrides = Partial<
+  Omit<Branding, 'theme' | 'assets' | 'namespace'>
+> & {
   theme?: Partial<Theme>
   assets?: Partial<Assets>
 }
 
-type TenantConfig = {
-  key: string
-  hosts: string[]
-  branding?: BrandingOverrides
+export const defaultTheme: Theme = {
+  ink: '#171512',
+  muted: '#6f6a62',
+  paper: '#f7f3eb',
+  card: '#fffdf8',
+  primary: '#f5b82e',
+  primaryDark: '#d89300',
+  accent: '#b9271e',
+  line: '#ddd5c8',
+  success: '#1c7a45'
 }
 
-function sanitizeNamespace(value: string) {
+export const defaultAssets: Assets = {
+  logoPath: '/assets/logo.png',
+  faviconPath: '/assets/logo.png',
+  homeHeroPath: '/assets/bannerHome.webp',
+  catalogHeroPath: '/assets/bannerProduct.webp',
+  loginImagePath: '/assets/login-img.webp',
+  registerImagePath: '/assets/user-img.webp'
+}
+
+export function sanitizeNamespace(value: string) {
   return value
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[̀-ͯ]/g, '')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
@@ -70,7 +87,7 @@ function sanitizeNamespace(value: string) {
 function sanitizeStatementDescriptor(value: string) {
   return value
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[̀-ͯ]/g, '')
     .replace(/[^a-zA-Z0-9 ]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
@@ -82,165 +99,64 @@ export function normalizeHost(value: string) {
   return value.trim().toLowerCase().replace(/:\d+$/, '')
 }
 
-function createBaseTheme(): Theme {
-  return {
-    ink: process.env.NEXT_PUBLIC_THEME_INK?.trim() || '#171512',
-    muted: process.env.NEXT_PUBLIC_THEME_MUTED?.trim() || '#6f6a62',
-    paper: process.env.NEXT_PUBLIC_THEME_PAPER?.trim() || '#f7f3eb',
-    card: process.env.NEXT_PUBLIC_THEME_CARD?.trim() || '#fffdf8',
-    primary: process.env.NEXT_PUBLIC_THEME_PRIMARY?.trim() || '#f5b82e',
-    primaryDark: process.env.NEXT_PUBLIC_THEME_PRIMARY_DARK?.trim() || '#d89300',
-    accent: process.env.NEXT_PUBLIC_THEME_ACCENT?.trim() || '#b9271e',
-    line: process.env.NEXT_PUBLIC_THEME_LINE?.trim() || '#ddd5c8',
-    success: process.env.NEXT_PUBLIC_THEME_SUCCESS?.trim() || '#1c7a45'
-  }
-}
+// Campos vazios contam como "não personalizado".
+const pick = (value: string | undefined, fallback: string) => value?.trim() || fallback
 
-function createBaseAssets(): Assets {
-  return {
-    logoPath: process.env.NEXT_PUBLIC_BRAND_LOGO_PATH?.trim() || '/assets/logo.png',
-    faviconPath:
-      process.env.NEXT_PUBLIC_BRAND_FAVICON_PATH?.trim() || '/assets/logo.png',
-    homeHeroPath:
-      process.env.NEXT_PUBLIC_BRAND_HOME_HERO_PATH?.trim() || '/assets/bannerHome.webp',
-    catalogHeroPath:
-      process.env.NEXT_PUBLIC_BRAND_CATALOG_HERO_PATH?.trim() ||
-      '/assets/bannerProduct.webp',
-    loginImagePath:
-      process.env.NEXT_PUBLIC_BRAND_LOGIN_IMAGE_PATH?.trim() || '/assets/login-img.webp',
-    registerImagePath:
-      process.env.NEXT_PUBLIC_BRAND_REGISTER_IMAGE_PATH?.trim() || '/assets/user-img.webp'
-  }
-}
-
-function buildBranding(overrides: BrandingOverrides = {}): Branding {
-  const brandName = overrides.brandName ?? process.env.NEXT_PUBLIC_BRAND_NAME?.trim() ?? 'Sua Marca'
+export function buildBranding(
+  namespace: string,
+  fallbackName: string,
+  overrides: BrandingOverrides = {}
+): Branding {
+  const brandName = pick(overrides.brandName, fallbackName)
   const brandWords = brandName.split(/\s+/).filter(Boolean)
-  const wordmarkLead =
-    overrides.brandWordmarkLead ??
-    process.env.NEXT_PUBLIC_BRAND_WORDMARK_LEAD?.trim() ??
-    brandWords[0] ??
-    brandName
-  const wordmarkTrail =
-    overrides.brandWordmarkTrail ??
-    process.env.NEXT_PUBLIC_BRAND_WORDMARK_TRAIL?.trim() ??
-    brandWords.slice(1).join(' ')
-  const namespaceSource =
-    overrides.namespace ?? process.env.NEXT_PUBLIC_APP_NAMESPACE?.trim() ?? brandName
-  const theme = { ...createBaseTheme(), ...overrides.theme }
-  const assets = { ...createBaseAssets(), ...overrides.assets }
+  const wordmarkLead = pick(overrides.brandWordmarkLead, brandWords[0] ?? brandName)
+  const wordmarkTrail = overrides.brandWordmarkLead?.trim()
+    ? (overrides.brandWordmarkTrail?.trim() ?? '')
+    : pick(overrides.brandWordmarkTrail, brandWords.slice(1).join(' '))
 
   return {
     brandName,
     brandWordmarkLead: wordmarkLead.toUpperCase(),
     brandWordmarkTrail: wordmarkTrail.toUpperCase(),
-    siteDescription:
-      overrides.siteDescription ??
-      process.env.NEXT_PUBLIC_SITE_DESCRIPTION?.trim() ??
-      'Plataforma white-label para delivery, catálogo digital, pedidos e checkout online.',
-    footerTagline:
-      overrides.footerTagline ??
-      process.env.NEXT_PUBLIC_FOOTER_TAGLINE?.trim() ??
-      'Operação digital pronta para vender com a identidade do seu cliente.',
-    homeEyebrow:
-      overrides.homeEyebrow ??
-      process.env.NEXT_PUBLIC_HOME_EYEBROW?.trim() ??
-      'White-label para delivery e restaurantes',
-    homeTitlePrefix:
-      overrides.homeTitlePrefix ??
-      process.env.NEXT_PUBLIC_HOME_TITLE_PREFIX?.trim() ??
-      'Seu delivery pronto para',
-    homeTitleHighlight:
-      overrides.homeTitleHighlight ??
-      process.env.NEXT_PUBLIC_HOME_TITLE_HIGHLIGHT?.trim() ??
-      'vender',
-    homeTitleSuffix:
-      overrides.homeTitleSuffix ??
-      process.env.NEXT_PUBLIC_HOME_TITLE_SUFFIX?.trim() ??
-      'online.',
-    homeCopy:
-      overrides.homeCopy ??
-      process.env.NEXT_PUBLIC_HOME_COPY?.trim() ??
-      'Catálogo, carrinho, checkout seguro e operação administrativa em uma única plataforma white-label.',
-    homeImageAlt:
-      overrides.homeImageAlt ??
-      process.env.NEXT_PUBLIC_HOME_IMAGE_ALT?.trim() ??
-      `${brandName} em destaque`,
-    homeHighlightTitle:
-      overrides.homeHighlightTitle ??
-      process.env.NEXT_PUBLIC_HOME_HIGHLIGHT_TITLE?.trim() ??
-      'Produtos em destaque',
-    productsDescription:
-      overrides.productsDescription ??
-      process.env.NEXT_PUBLIC_PRODUCTS_DESCRIPTION?.trim() ??
-      `Explore o catálogo completo da ${brandName}.`,
-    productsEyebrow:
-      overrides.productsEyebrow ??
-      process.env.NEXT_PUBLIC_PRODUCTS_EYEBROW?.trim() ??
-      'Catálogo digital',
-    productsTitle:
-      overrides.productsTitle ??
-      process.env.NEXT_PUBLIC_PRODUCTS_TITLE?.trim() ??
-      `Cardápio ${brandName}`,
-    productsCopy:
-      overrides.productsCopy ??
-      process.env.NEXT_PUBLIC_PRODUCTS_COPY?.trim() ??
-      'Produtos organizados para conversão, operação rápida e atualização simples.',
-    loadingLabel:
-      overrides.loadingLabel ??
-      process.env.NEXT_PUBLIC_LOADING_LABEL?.trim() ??
-      `Carregando ${brandName}...`,
-    apiErrorLabel:
-      overrides.apiErrorLabel ??
-      process.env.NEXT_PUBLIC_API_ERROR_LABEL?.trim() ??
-      `Verifique a integração principal da ${brandName} e tente novamente.`,
-    statementDescriptor: sanitizeStatementDescriptor(
-      overrides.statementDescriptor ??
-        process.env.NEXT_PUBLIC_BRAND_STATEMENT_DESCRIPTOR?.trim() ??
-        brandName
+    siteDescription: pick(
+      overrides.siteDescription,
+      `Peça online no cardápio da ${brandName}.`
     ),
-    namespace: sanitizeNamespace(namespaceSource) || 'storefront',
-    theme,
-    assets
+    footerTagline: pick(overrides.footerTagline, 'Pedidos online com entrega rápida.'),
+    homeEyebrow: pick(overrides.homeEyebrow, 'Delivery'),
+    homeTitlePrefix: pick(overrides.homeTitlePrefix, 'Seu pedido pronto para'),
+    homeTitleHighlight: pick(overrides.homeTitleHighlight, 'chegar'),
+    homeTitleSuffix: pick(overrides.homeTitleSuffix, 'rapidinho.'),
+    homeCopy: pick(
+      overrides.homeCopy,
+      'Escolha no cardápio, finalize em poucos cliques e acompanhe seu pedido.'
+    ),
+    homeImageAlt: pick(overrides.homeImageAlt, `${brandName} em destaque`),
+    homeHighlightTitle: pick(overrides.homeHighlightTitle, 'Produtos em destaque'),
+    productsDescription: pick(
+      overrides.productsDescription,
+      `Explore o cardápio completo da ${brandName}.`
+    ),
+    productsEyebrow: pick(overrides.productsEyebrow, 'Cardápio'),
+    productsTitle: pick(overrides.productsTitle, `Cardápio ${brandName}`),
+    productsCopy: pick(overrides.productsCopy, 'Escolha seus favoritos e monte o pedido.'),
+    loadingLabel: pick(overrides.loadingLabel, `Carregando ${brandName}...`),
+    apiErrorLabel: pick(overrides.apiErrorLabel, 'Tente novamente em alguns instantes.'),
+    statementDescriptor: sanitizeStatementDescriptor(
+      pick(overrides.statementDescriptor, brandName)
+    ),
+    namespace,
+    theme: { ...defaultTheme, ...stripEmpty(overrides.theme) },
+    assets: { ...defaultAssets, ...stripEmpty(overrides.assets) }
   }
 }
 
-function parseTenantConfig(): TenantConfig[] {
-  const raw = process.env.APP_TENANT_CONFIG?.trim()
-  if (!raw) return []
-
-  try {
-    const value = JSON.parse(raw) as unknown
-    if (!Array.isArray(value)) return []
-
-    return value.flatMap(item => {
-      if (!item || typeof item !== 'object') return []
-
-      const key = typeof item.key === 'string' ? item.key : ''
-      const hosts = Array.isArray(item.hosts)
-        ? item.hosts.filter((host: unknown): host is string => typeof host === 'string')
-        : []
-
-      if (!key || !hosts.length) return []
-
-      return [{ key, hosts: hosts.map(normalizeHost), branding: item.branding as BrandingOverrides }]
-    })
-  } catch {
-    return []
-  }
+function stripEmpty<T extends Record<string, string | undefined>>(value?: T): Partial<T> {
+  if (!value) return {}
+  return Object.fromEntries(
+    Object.entries(value).filter(([, item]) => typeof item === 'string' && item.trim())
+  ) as Partial<T>
 }
-
-function hostMatches(pattern: string, host: string) {
-  if (pattern.startsWith('*.')) {
-    return host.endsWith(pattern.slice(1))
-  }
-
-  return host === pattern
-}
-
-const tenantConfig = parseTenantConfig()
-
-export const branding = buildBranding()
 
 export function getThemeStyle(value: Branding): CSSProperties {
   return {
@@ -256,18 +172,5 @@ export function getThemeStyle(value: Branding): CSSProperties {
   } as CSSProperties
 }
 
-export function listConfiguredBrandings(): Branding[] {
-  return [branding, ...tenantConfig.map(item => buildBranding(item.branding))]
-}
-
-export function resolveTenantBranding(host?: string): Branding {
-  const normalizedHost = normalizeHost(host ?? '')
-  const tenant = tenantConfig.find(item =>
-    item.hosts.some(pattern => hostMatches(pattern, normalizedHost))
-  )
-
-  if (!tenant) return branding
-  return buildBranding(tenant.branding)
-}
-
-export const cartStorageKey = `${branding.namespace}:cart`
+// Cada loja tem seu próprio host, então o localStorage já é separado por loja.
+export const cartStorageKey = 'storefront:cart'

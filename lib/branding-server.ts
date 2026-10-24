@@ -1,32 +1,21 @@
-import { headers } from 'next/headers'
+import { cache } from 'react'
 
-import { resolveTenantBranding, normalizeHost } from '@/lib/branding'
+import { buildBranding } from '@/lib/branding'
+import { getCurrentTenant } from '@/lib/tenant'
 
-async function getRequestHost(request?: Request) {
-  if (request) {
-    return normalizeHost(
-      request.headers.get('x-forwarded-host') ??
-        request.headers.get('host') ??
-        new URL(request.url).host
-    )
-  }
+export const getTenantBranding = cache(async () => {
+  // Sem loja (host desconhecido) a página ainda renderiza com a marca genérica;
+  // quem precisa da loja (catálogo, pedidos) falha com "Loja não encontrada".
+  const tenant = await getCurrentTenant().catch(() => null)
+  if (!tenant) return buildBranding('storefront', 'Delivery')
 
-  const headerStore = await headers()
-  return normalizeHost(
-    headerStore.get('x-forwarded-host') ?? headerStore.get('host') ?? ''
-  )
-}
+  return buildBranding(tenant.slug, tenant.name, tenant.branding)
+})
 
-export async function getTenantBranding(request?: Request) {
-  const host = await getRequestHost(request)
-  return resolveTenantBranding(host)
-}
-
-export async function getSessionCookieNames(request?: Request) {
-  const branding = await getTenantBranding(request)
+export async function getSessionCookieNames() {
+  const branding = await getTenantBranding()
 
   return {
-    token: `${branding.namespace}_token`,
-    user: `${branding.namespace}_user`
+    token: `${branding.namespace}_token`
   }
 }

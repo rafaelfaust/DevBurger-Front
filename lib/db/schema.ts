@@ -2,6 +2,7 @@ import {
   boolean,
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   text,
@@ -9,6 +10,8 @@ import {
   uniqueIndex,
   uuid
 } from 'drizzle-orm/pg-core'
+
+import type { BrandingOverrides } from '@/lib/branding'
 
 export const userRole = pgEnum('user_role', ['owner', 'staff', 'customer'])
 
@@ -42,9 +45,24 @@ export const tenants = pgTable('tenants', {
   acceptsCardOnDelivery: boolean('accepts_card_on_delivery').notNull().default(true),
   acceptsPixOnDelivery: boolean('accepts_pix_on_delivery').notNull().default(true),
   acceptsOnline: boolean('accepts_online').notNull().default(false),
+  // Só os campos que a loja personalizou; o resto vem do padrão da plataforma.
+  branding: jsonb('branding').$type<BrandingOverrides>().notNull().default({}),
   active: boolean('active').notNull().default(true),
   createdAt: createdAt()
 })
+
+// Domínios próprios de cada loja (ex.: pedidos.hamburgueria.com.br).
+export const tenantDomains = pgTable(
+  'tenant_domains',
+  {
+    host: text('host').primaryKey(),
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'cascade' }),
+    createdAt: createdAt()
+  },
+  table => [index('tenant_domains_tenant_idx').on(table.tenantId)]
+)
 
 export const users = pgTable(
   'users',
