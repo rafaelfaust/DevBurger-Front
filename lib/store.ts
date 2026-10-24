@@ -6,6 +6,11 @@ import { and, asc, desc, eq, inArray } from 'drizzle-orm'
 import { requireAdminSession } from '@/lib/auth'
 import { buildBranding, type BrandingOverrides } from '@/lib/branding'
 import { getDb, schema } from '@/lib/db'
+import {
+  getStoreStatus,
+  type OpeningHours,
+  type StatusOverride
+} from '@/lib/opening-hours'
 import { orderStatusTransitions, type OrderStatus } from '@/lib/order-status'
 import { hashPassword } from '@/lib/password'
 import {
@@ -76,6 +81,40 @@ export async function updateStoreSettings(
     .returning()
 
   return toSettings(updated)
+}
+
+function statusOf(tenant: Tenant) {
+  return getStoreStatus(tenant.openingHours, tenant.statusOverride, tenant.timezone)
+}
+
+export async function getCurrentStoreStatus() {
+  return statusOf(await getCurrentTenant())
+}
+
+export async function getOpeningHoursSettings() {
+  await requireAdminSession()
+  const tenant = await getCurrentTenant()
+  return {
+    hours: tenant.openingHours,
+    override: tenant.statusOverride,
+    status: statusOf(tenant)
+  }
+}
+
+export async function updateOpeningHours(input: {
+  hours: OpeningHours
+  override: StatusOverride
+}) {
+  await requireAdminSession()
+  const tenant = await getCurrentTenant()
+
+  const [updated] = await getDb()
+    .update(schema.tenants)
+    .set({ openingHours: input.hours, statusOverride: input.override })
+    .where(eq(schema.tenants.id, tenant.id))
+    .returning()
+
+  return statusOf(updated)
 }
 
 export async function getAppearance() {
@@ -259,6 +298,11 @@ export async function createOrder(
 ) {
   const tenant = await getCurrentTenant()
   const db = getDb()
+
+  const status = statusOf(tenant)
+  if (!status.open) {
+    throw new StoreError(`A loja está fechada agora. ${status.label}.`, 409)
+  }
 
   if (!enabledPaymentMethods(toSettings(tenant)).includes(payment.method)) {
     throw new StoreError('Esta forma de pagamento não está disponível nesta loja', 400)

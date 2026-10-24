@@ -22,6 +22,13 @@
       "when": 1792847951964,
       "tag": "0002_tenant_branding_domains",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792858825990,
+      "tag": "0003_opening_hours",
+      "breakpoints": true
     }
   ]
 }

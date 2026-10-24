@@ -7,14 +7,17 @@ import { useState } from 'react'
 import { useCart } from '@/components/cart-context'
 import { CheckoutButton } from '@/components/checkout-button'
 import { formatCurrency } from '@/lib/format'
+import type { StoreStatus } from '@/lib/opening-hours'
 import { paymentMethodLabels, type PaymentMethod } from '@/lib/payment-methods'
 
 export function CartView({
   deliveryFee,
-  paymentMethods
+  paymentMethods,
+  status
 }: {
   deliveryFee: number
   paymentMethods: PaymentMethod[]
+  status: StoreStatus
 }) {
   const { items, total, increase, decrease, remove } = useCart()
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(
@@ -111,7 +114,14 @@ export function CartView({
             </label>
           )}
         </fieldset>
-        <CheckoutButton changeFor={changeValue} paymentMethod={paymentMethod} />
+        {status.open ? (
+          <CheckoutButton changeFor={changeValue} paymentMethod={paymentMethod} />
+        ) : (
+          <p className="checkout-closed">
+            <strong>Loja fechada agora.</strong> {status.label}. Seu carrinho
+            fica salvo até lá.
+          </p>
+        )}
         {paymentMethod === 'online' && (
           <small>
             Pagamento processado em ambiente seguro pelo Mercado Pago.

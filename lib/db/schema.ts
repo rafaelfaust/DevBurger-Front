@@ -12,6 +12,7 @@ import {
 } from 'drizzle-orm/pg-core'
 
 import type { BrandingOverrides } from '@/lib/branding'
+import type { OpeningHours, StatusOverride } from '@/lib/opening-hours'
 
 export const userRole = pgEnum('user_role', ['owner', 'staff', 'customer'])
 
@@ -47,6 +48,10 @@ export const tenants = pgTable('tenants', {
   acceptsOnline: boolean('accepts_online').notNull().default(false),
   // Só os campos que a loja personalizou; o resto vem do padrão da plataforma.
   branding: jsonb('branding').$type<BrandingOverrides>().notNull().default({}),
+  // Sem turnos cadastrados a loja fica sempre aberta.
+  openingHours: jsonb('opening_hours').$type<OpeningHours>().notNull().default({}),
+  statusOverride: text('status_override').$type<StatusOverride>(),
+  timezone: text('timezone').notNull().default('America/Sao_Paulo'),
   active: boolean('active').notNull().default(true),
   createdAt: createdAt()
 })

@@ -1,4 +1,4 @@
-import { ClipboardList, Palette, PlusCircle, Settings, Utensils } from 'lucide-react'
+import { ClipboardList, Clock, Palette, PlusCircle, Settings, Utensils } from 'lucide-react'
 import Link from 'next/link'
 
 export function AdminNav() {
@@ -16,6 +16,9 @@ export function AdminNav() {
       </Link>
       <Link href="/admin/configuracoes">
         <Settings size={19} /> Configurações
+      </Link>
+      <Link href="/admin/horarios">
+        <Clock size={19} /> Horários
       </Link>
       <Link href="/admin/aparencia">
         <Palette size={19} /> Aparência

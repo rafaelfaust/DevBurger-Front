@@ -1129,3 +1129,120 @@ footer {
     gap: 14px;
   }
 }
+
+.store-closed-bar {
+  background: var(--ink);
+  color: white;
+  font-size: 0.92rem;
+  padding: 10px max(24px, calc((100vw - 1280px) / 2));
+  text-align: center;
+}
+
+.store-closed-bar strong {
+  color: var(--yellow);
+}
+
+.checkout-closed {
+  background: #2a2722;
+  border-radius: 12px;
+  color: #e7e2d9;
+  line-height: 1.5;
+  margin: 20px 0 0;
+  padding: 14px 16px;
+}
+
+.store-status {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  padding: 14px 16px;
+}
+
+.store-status.is-open {
+  border-color: var(--green);
+}
+
+.store-status.is-open strong {
+  color: var(--green);
+}
+
+.store-status.is-closed strong {
+  color: var(--red);
+}
+
+.hours-grid {
+  display: grid;
+}
+
+.hours-day {
+  align-items: start;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 8px 16px;
+  grid-template-columns: 90px minmax(0, 1fr) auto;
+  padding: 12px 0;
+}
+
+.hours-day > strong {
+  padding-top: 10px;
+}
+
+.hours-day > .text-button {
+  padding-top: 10px;
+}
+
+.hours-shifts {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.hours-shifts > .settings-hint {
+  padding-top: 10px;
+}
+
+.hours-shift {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-form .hours-shift input {
+  min-height: 40px;
+  width: 120px;
+}
+
+.text-button {
+  align-items: center;
+  background: none;
+  border: 0;
+  color: var(--ink);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-weight: 600;
+  gap: 4px;
+  justify-self: start;
+  padding: 4px 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.text-button:disabled {
+  color: var(--muted);
+  cursor: default;
+}
+
+@media (max-width: 560px) {
+  .hours-day {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .hours-shifts {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}

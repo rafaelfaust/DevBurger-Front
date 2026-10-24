@@ -8,6 +8,7 @@ import { Providers } from '@/components/providers'
 import { getSessionUser } from '@/lib/auth'
 import { getThemeStyle } from '@/lib/branding'
 import { getTenantBranding } from '@/lib/branding-server'
+import { getCurrentStoreStatus } from '@/lib/store'
 
 import './globals.css'
 
@@ -56,9 +57,10 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function RootLayout({
   children
 }: Readonly<{ children: React.ReactNode }>) {
-  const [user, branding] = await Promise.all([
+  const [user, branding, storeStatus] = await Promise.all([
     getSessionUser(),
-    getTenantBranding()
+    getTenantBranding(),
+    getCurrentStoreStatus().catch(() => null)
   ])
   const themeStyle = getThemeStyle(branding)
 
@@ -71,6 +73,12 @@ export default async function RootLayout({
         <Providers>
           <PwaRegister />
           <Header branding={branding} user={user} />
+          {storeStatus && !storeStatus.open && (
+            <div className="store-closed-bar" role="status">
+              <strong>Fechado agora</strong> · {storeStatus.label}. Você pode
+              ver o cardápio e montar seu pedido.
+            </div>
+          )}
           {children}
           <footer>
             <span>{branding.brandWordmarkLead}</span>

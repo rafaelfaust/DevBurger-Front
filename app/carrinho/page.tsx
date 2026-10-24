@@ -2,12 +2,15 @@ import type { Metadata } from 'next'
 
 import { CartView } from '@/components/cart-view'
 import { enabledPaymentMethods } from '@/lib/payment-methods'
-import { getStoreSettings } from '@/lib/store'
+import { getCurrentStoreStatus, getStoreSettings } from '@/lib/store'
 
 export const metadata: Metadata = { title: 'Carrinho' }
 
 export default async function CartPage() {
-  const settings = await getStoreSettings()
+  const [settings, status] = await Promise.all([
+    getStoreSettings(),
+    getCurrentStoreStatus()
+  ])
 
   return (
     <main className="section cart-page">
@@ -20,6 +23,7 @@ export default async function CartPage() {
       <CartView
         deliveryFee={settings.deliveryFee}
         paymentMethods={enabledPaymentMethods(settings)}
+        status={status}
       />
     </main>
   )
