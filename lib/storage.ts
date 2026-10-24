@@ -35,6 +35,13 @@ function r2Config() {
   const publicUrl = process.env.R2_PUBLIC_URL?.trim().replace(/\/$/, '')
 
   if (!accountId || !accessKeyId || !secretAccessKey || !bucket || !publicUrl) return null
+
+  // Um valor colado errado (com aspas ou o nome da variável) geraria links quebrados no banco.
+  if (!/^https:\/\/[^\s"'=]+$/.test(publicUrl)) {
+    console.error('[storage] R2_PUBLIC_URL inválida: use só o endereço, ex.: https://pub-xxxx.r2.dev')
+    throw new StoreError('O envio de imagens está com a configuração inválida', 503)
+  }
+
   return { accountId, accessKeyId, secretAccessKey, bucket, publicUrl }
 }
 
