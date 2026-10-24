@@ -4,6 +4,8 @@ import { z } from 'zod'
 
 import { getSessionUser } from '@/lib/auth'
 import { getTenantBranding } from '@/lib/branding-server'
+import { paymentMethods } from '@/lib/payment-methods'
+import { demoCheckout } from '@/lib/payments'
 import { confirmOrderPayment, createOrder, StoreError } from '@/lib/store'
 
 const schema = z.object({
@@ -15,39 +17,38 @@ const schema = z.object({
       })
     )
     .min(1)
-    .max(30)
+    .max(30),
+  paymentMethod: z.enum(paymentMethods),
+  changeFor: z.number().positive().max(10000).nullish()
 })
-
-// Checkout falso para testes: local ou deploy de preview da Vercel. Nunca em produção.
-const demoCheckout =
-  process.env.ALLOW_DEMO_CHECKOUT === 'true' &&
-  (process.env.NODE_ENV !== 'production' || process.env.VERCEL_ENV === 'preview')
 
 export async function POST(request: Request) {
   try {
     const branding = await getTenantBranding(request)
     const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN
 
-    if (!accessToken && !demoCheckout) {
-      return NextResponse.json(
-        { message: 'Mercado Pago ainda não foi configurado' },
-        { status: 503 }
-      )
-    }
-
     const user = await getSessionUser()
     if (!user) {
       return NextResponse.json(
-        { message: 'Entre na sua conta antes de pagar' },
+        { message: 'Entre na sua conta antes de finalizar o pedido' },
         { status: 401 }
       )
     }
 
     const payload = schema.parse(await request.json())
-    const { order, lines, deliveryFee } = await createOrder(user, payload.items)
+    const { order, lines, deliveryFee } = await createOrder(user, payload.items, {
+      method: payload.paymentMethod,
+      changeFor: payload.changeFor
+    })
     const appUrl =
       process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') ||
       new URL(request.url).origin
+
+    if (order.paymentMethod !== 'online') {
+      return NextResponse.json({
+        checkoutUrl: `${appUrl}/pagamento/recebido?pedido=${order.id}`
+      })
+    }
 
     if (demoCheckout) {
       await confirmOrderPayment({

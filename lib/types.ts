@@ -1,4 +1,5 @@
 import type { OrderStatus } from '@/lib/order-status'
+import type { PaymentMethod } from '@/lib/payment-methods'
 
 export type Category = {
   id: number
@@ -46,4 +47,6 @@ export type Order = {
   subtotal: number
   deliveryFee: number
   total: number
+  paymentMethod: PaymentMethod
+  changeFor: number | null
 }

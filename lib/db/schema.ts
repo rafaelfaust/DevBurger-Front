@@ -22,6 +22,13 @@ export const orderStatus = pgEnum('order_status', [
   'canceled'
 ])
 
+export const paymentMethod = pgEnum('payment_method', [
+  'online',
+  'cash',
+  'card_on_delivery',
+  'pix_on_delivery'
+])
+
 const createdAt = () =>
   timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 
@@ -31,6 +38,10 @@ export const tenants = pgTable('tenants', {
   slug: text('slug').notNull().unique(),
   name: text('name').notNull(),
   deliveryFeeCents: integer('delivery_fee_cents').notNull().default(500),
+  acceptsCash: boolean('accepts_cash').notNull().default(true),
+  acceptsCardOnDelivery: boolean('accepts_card_on_delivery').notNull().default(true),
+  acceptsPixOnDelivery: boolean('accepts_pix_on_delivery').notNull().default(true),
+  acceptsOnline: boolean('accepts_online').notNull().default(false),
   active: boolean('active').notNull().default(true),
   createdAt: createdAt()
 })
@@ -116,6 +127,9 @@ export const orders = pgTable(
     subtotalCents: integer('subtotal_cents').notNull(),
     deliveryFeeCents: integer('delivery_fee_cents').notNull(),
     totalCents: integer('total_cents').notNull(),
+    paymentMethod: paymentMethod('payment_method').notNull().default('online'),
+    // Troco para (só pagamento em dinheiro).
+    changeForCents: integer('change_for_cents'),
     paymentId: text('payment_id'),
     paymentStatus: text('payment_status'),
     createdAt: createdAt(),

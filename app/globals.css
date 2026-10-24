@@ -595,6 +595,56 @@ footer span {
   width: 100%;
 }
 
+.payment-options {
+  border: 0;
+  border-top: 1px solid #4c4841;
+  display: grid;
+  gap: 10px;
+  margin: 20px 0 0;
+  padding: 20px 0 0;
+}
+
+.payment-options legend {
+  font-weight: 700;
+  padding: 0 0 10px;
+}
+
+.payment-options label {
+  align-items: center;
+  color: #e7e2d9;
+  cursor: pointer;
+  display: flex;
+  gap: 10px;
+}
+
+.payment-options input[type='radio'] {
+  accent-color: var(--yellow);
+  min-height: auto;
+}
+
+.payment-options .change-for {
+  align-items: stretch;
+  cursor: default;
+  flex-direction: column;
+  font-size: 0.9rem;
+  gap: 6px;
+  padding-left: 26px;
+}
+
+.payment-options .change-for input {
+  background: #2a2722;
+  border: 1px solid #4c4841;
+  border-radius: 10px;
+  color: white;
+  min-height: 42px;
+  padding: 0 12px;
+}
+
+.payment-options p {
+  color: #c9c4bb;
+  margin: 0;
+}
+
 .order-summary small {
   color: #aaa49b;
   display: block;
@@ -859,6 +909,25 @@ footer span {
 
 .admin-form .checkbox input {
   min-height: auto;
+}
+
+.settings-group {
+  border: 0;
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+}
+
+.settings-group legend {
+  font-weight: 700;
+  padding: 0 0 10px;
+}
+
+.settings-hint {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin: 0;
 }
 
 .page-loading {

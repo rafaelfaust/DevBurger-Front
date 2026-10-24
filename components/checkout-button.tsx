@@ -4,13 +4,21 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { useCart } from '@/components/cart-context'
+import type { PaymentMethod } from '@/lib/payment-methods'
 
-export function CheckoutButton() {
-  const { items } = useCart()
+export function CheckoutButton({
+  paymentMethod,
+  changeFor
+}: {
+  paymentMethod: PaymentMethod | null
+  changeFor: number | null
+}) {
+  const { items, clear } = useCart()
   const [loading, setLoading] = useState(false)
+  const online = paymentMethod === 'online'
 
   async function checkout() {
-    if (!items.length) return
+    if (!items.length || !paymentMethod) return
     setLoading(true)
 
     try {
@@ -18,15 +26,18 @@ export function CheckoutButton() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          items: items.map(item => ({ id: item.id, quantity: item.quantity }))
+          items: items.map(item => ({ id: item.id, quantity: item.quantity })),
+          paymentMethod,
+          changeFor
         })
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.message)
+      clear()
       window.location.assign(data.checkoutUrl)
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : 'Falha ao iniciar pagamento'
+        error instanceof Error ? error.message : 'Falha ao finalizar o pedido'
       )
       setLoading(false)
     }
@@ -35,10 +46,16 @@ export function CheckoutButton() {
   return (
     <button
       className="button checkout-button"
-      disabled={!items.length || loading}
+      disabled={!items.length || !paymentMethod || loading}
       onClick={checkout}
     >
-      {loading ? 'Abrindo Mercado Pago...' : 'Pagar com Mercado Pago'}
+      {loading
+        ? online
+          ? 'Abrindo Mercado Pago...'
+          : 'Enviando pedido...'
+        : online
+          ? 'Pagar com Mercado Pago'
+          : 'Finalizar pedido'}
     </button>
   )
 }

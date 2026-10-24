@@ -1,5 +1,6 @@
 import { OrderStatus } from '@/components/order-status'
 import { formatCurrency, formatDate } from '@/lib/format'
+import { paymentMethodShortLabels } from '@/lib/payment-methods'
 import { getOrders } from '@/lib/store'
 
 export default async function OrdersPage() {
@@ -19,6 +20,11 @@ export default async function OrdersPage() {
                 <strong>#{order.id.slice(-8)}</strong>
                 <span>{order.user.name}</span>
                 <small>{formatDate(order.createdAt)}</small>
+                <small>
+                  {paymentMethodShortLabels[order.paymentMethod]}
+                  {order.changeFor !== null &&
+                    ` · troco para ${formatCurrency(order.changeFor)} (devolver ${formatCurrency(order.changeFor - order.total)})`}
+                </small>
               </div>
               <OrderStatus
                 initialStatus={order.status}

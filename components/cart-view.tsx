@@ -2,15 +2,27 @@
 
 import { Minus, Plus, Trash2 } from 'lucide-react'
 import Image from 'next/image'
+import { useState } from 'react'
 
 import { useCart } from '@/components/cart-context'
 import { CheckoutButton } from '@/components/checkout-button'
 import { formatCurrency } from '@/lib/format'
+import { paymentMethodLabels, type PaymentMethod } from '@/lib/payment-methods'
 
-const deliveryFee = 5
-
-export function CartView() {
+export function CartView({
+  deliveryFee,
+  paymentMethods
+}: {
+  deliveryFee: number
+  paymentMethods: PaymentMethod[]
+}) {
   const { items, total, increase, decrease, remove } = useCart()
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(
+    paymentMethods[0] ?? null
+  )
+  const [changeFor, setChangeFor] = useState('')
+  const orderTotal = total + deliveryFee
+  const changeValue = paymentMethod === 'cash' && changeFor ? Number(changeFor) : null
 
   if (!items.length) {
     return (
@@ -63,12 +75,48 @@ export function CartView() {
         </div>
         <div className="summary-total">
           <strong>Total</strong>
-          <strong>{formatCurrency(total + deliveryFee)}</strong>
+          <strong>{formatCurrency(orderTotal)}</strong>
         </div>
-        <CheckoutButton />
-        <small>
-          Pagamento processado em ambiente seguro pelo Mercado Pago.
-        </small>
+        <fieldset className="payment-options">
+          <legend>Forma de pagamento</legend>
+          {paymentMethods.map(method => (
+            <label key={method}>
+              <input
+                checked={paymentMethod === method}
+                id={`payment-${method}`}
+                name="payment-method"
+                onChange={() => setPaymentMethod(method)}
+                type="radio"
+                value={method}
+              />
+              {paymentMethodLabels[method]}
+            </label>
+          ))}
+          {!paymentMethods.length && (
+            <p>Esta loja não está aceitando pedidos no momento.</p>
+          )}
+          {paymentMethod === 'cash' && (
+            <label className="change-for" htmlFor="change-for">
+              Troco para quanto? (opcional)
+              <input
+                id="change-for"
+                inputMode="decimal"
+                min={orderTotal}
+                onChange={event => setChangeFor(event.target.value)}
+                placeholder={`Ex.: ${formatCurrency(Math.ceil(orderTotal / 10) * 10 + 10)}`}
+                step="0.01"
+                type="number"
+                value={changeFor}
+              />
+            </label>
+          )}
+        </fieldset>
+        <CheckoutButton changeFor={changeValue} paymentMethod={paymentMethod} />
+        {paymentMethod === 'online' && (
+          <small>
+            Pagamento processado em ambiente seguro pelo Mercado Pago.
+          </small>
+        )}
       </aside>
     </div>
   )

@@ -7,7 +7,13 @@ import { requireAdminSession } from '@/lib/auth'
 import { getDb, schema } from '@/lib/db'
 import { orderStatusTransitions, type OrderStatus } from '@/lib/order-status'
 import { hashPassword } from '@/lib/password'
-import { getCurrentTenant, StoreError } from '@/lib/tenant'
+import {
+  enabledPaymentMethods,
+  type PaymentMethod,
+  type StoreSettings
+} from '@/lib/payment-methods'
+import { isOnlinePaymentAvailable } from '@/lib/payments'
+import { getCurrentTenant, StoreError, type Tenant } from '@/lib/tenant'
 import type { Category, Order, Product, User } from '@/lib/types'
 
 export { StoreError }
@@ -29,6 +35,46 @@ function toProduct(row: typeof schema.products.$inferSelect): Product {
     offer: row.offer,
     category_id: row.categoryId
   }
+}
+
+function toSettings(tenant: Tenant): StoreSettings {
+  return {
+    deliveryFee: toReais(tenant.deliveryFeeCents),
+    acceptsCash: tenant.acceptsCash,
+    acceptsCardOnDelivery: tenant.acceptsCardOnDelivery,
+    acceptsPixOnDelivery: tenant.acceptsPixOnDelivery,
+    acceptsOnline: tenant.acceptsOnline,
+    onlineAvailable: isOnlinePaymentAvailable()
+  }
+}
+
+export async function getStoreSettings(): Promise<StoreSettings> {
+  return toSettings(await getCurrentTenant())
+}
+
+export async function updateStoreSettings(
+  input: Omit<StoreSettings, 'onlineAvailable'>
+): Promise<StoreSettings> {
+  await requireAdminSession()
+  const tenant = await getCurrentTenant()
+
+  if (!enabledPaymentMethods({ ...input, onlineAvailable: isOnlinePaymentAvailable() }).length) {
+    throw new StoreError('Ative pelo menos uma forma de pagamento', 400)
+  }
+
+  const [updated] = await getDb()
+    .update(schema.tenants)
+    .set({
+      deliveryFeeCents: Math.round(input.deliveryFee * 100),
+      acceptsCash: input.acceptsCash,
+      acceptsCardOnDelivery: input.acceptsCardOnDelivery,
+      acceptsPixOnDelivery: input.acceptsPixOnDelivery,
+      acceptsOnline: input.acceptsOnline
+    })
+    .where(eq(schema.tenants.id, tenant.id))
+    .returning()
+
+  return toSettings(updated)
 }
 
 export async function getProducts(): Promise<Product[]> {
@@ -168,17 +214,24 @@ export async function getOrders(): Promise<Order[]> {
       })),
     subtotal: toReais(order.subtotalCents),
     deliveryFee: toReais(order.deliveryFeeCents),
-    total: toReais(order.totalCents)
+    total: toReais(order.totalCents),
+    paymentMethod: order.paymentMethod,
+    changeFor: order.changeForCents === null ? null : toReais(order.changeForCents)
   }))
 }
 
 // Preços e taxa sempre vêm do banco; o cliente só informa ids e quantidades.
 export async function createOrder(
   customer: User,
-  input: Array<{ id: number; quantity: number }>
+  input: Array<{ id: number; quantity: number }>,
+  payment: { method: PaymentMethod; changeFor?: number | null }
 ) {
   const tenant = await getCurrentTenant()
   const db = getDb()
+
+  if (!enabledPaymentMethods(toSettings(tenant)).includes(payment.method)) {
+    throw new StoreError('Esta forma de pagamento não está disponível nesta loja', 400)
+  }
 
   const ids = [...new Set(input.map(item => item.id))]
   const catalog = await db
@@ -203,6 +256,13 @@ export async function createOrder(
     0
   )
   const deliveryFeeCents = tenant.deliveryFeeCents
+  const totalCents = subtotalCents + deliveryFeeCents
+
+  const changeForCents =
+    payment.method === 'cash' && payment.changeFor ? Math.round(payment.changeFor * 100) : null
+  if (changeForCents !== null && changeForCents < totalCents) {
+    throw new StoreError('O troco precisa ser para um valor maior que o total', 400)
+  }
 
   const order = await db.transaction(async tx => {
     const [created] = await tx
@@ -212,7 +272,11 @@ export async function createOrder(
         customerId: customer.id,
         subtotalCents,
         deliveryFeeCents,
-        totalCents: subtotalCents + deliveryFeeCents
+        totalCents,
+        paymentMethod: payment.method,
+        changeForCents,
+        // Pagamento na entrega vai direto para a cozinha.
+        status: payment.method === 'online' ? 'awaiting_payment' : 'confirmed'
       })
       .returning()
 

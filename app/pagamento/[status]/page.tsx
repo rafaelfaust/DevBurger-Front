@@ -1,7 +1,12 @@
-import { CheckCircle2, CircleX, Clock3 } from 'lucide-react'
+import { CheckCircle2, CircleX, Clock3, ReceiptText } from 'lucide-react'
 import Link from 'next/link'
 
 const content = {
+  recebido: {
+    icon: ReceiptText,
+    title: 'Pedido enviado',
+    text: 'A loja já recebeu seu pedido. O pagamento é feito na entrega.'
+  },
   sucesso: {
     icon: CheckCircle2,
     title: 'Pagamento aprovado',
