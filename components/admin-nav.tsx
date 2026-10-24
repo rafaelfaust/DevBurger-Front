@@ -1,4 +1,4 @@
-import { ClipboardList, PlusCircle, Utensils } from 'lucide-react'
+import { ClipboardList, PlusCircle, Settings, Utensils } from 'lucide-react'
 import Link from 'next/link'
 
 export function AdminNav() {
@@ -13,6 +13,9 @@ export function AdminNav() {
       </Link>
       <Link href="/admin/produtos/novo">
         <PlusCircle size={19} /> Novo produto
+      </Link>
+      <Link href="/admin/configuracoes">
+        <Settings size={19} /> Configurações
       </Link>
     </aside>
   )
