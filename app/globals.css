@@ -1246,3 +1246,8 @@ footer {
     grid-row: 2;
   }
 }
+
+.image-field {
+  display: grid;
+  gap: 4px;
+}

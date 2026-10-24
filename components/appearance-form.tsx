@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { FormEvent, useState } from 'react'
 import { toast } from 'sonner'
 
+import { ImageUploadButton } from '@/components/image-upload-button'
 import type { Assets, Branding, BrandingOverrides, Theme } from '@/lib/branding'
 
 type TextField = {
@@ -165,19 +166,22 @@ export function AppearanceForm({
       <fieldset className="settings-group">
         <legend>Imagens</legend>
         <p className="settings-hint">
-          Endereço da imagem (https://...) ou caminho no site (/assets/...). O
-          envio de arquivos direto por aqui chega na próxima atualização.
+          Envie um arquivo JPG, PNG ou WebP de até 4 MB, ou cole o endereço de
+          uma imagem (https://...).
         </p>
         {imageFields.map(field => (
-          <label htmlFor={`assets.${field.name}`} key={field.name}>
-            {field.label}
-            <input
-              defaultValue={overrides.assets?.[field.name] ?? ''}
-              id={`assets.${field.name}`}
-              name={`assets.${field.name}`}
-              placeholder={effective.assets[field.name]}
-            />
-          </label>
+          <div className="image-field" key={field.name}>
+            <label htmlFor={`assets.${field.name}`}>
+              {field.label}
+              <input
+                defaultValue={overrides.assets?.[field.name] ?? ''}
+                id={`assets.${field.name}`}
+                name={`assets.${field.name}`}
+                placeholder={effective.assets[field.name]}
+              />
+            </label>
+            <ImageUploadButton label={field.label} targetId={`assets.${field.name}`} />
+          </div>
         ))}
       </fieldset>
 

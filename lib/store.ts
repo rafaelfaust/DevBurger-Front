@@ -1,6 +1,3 @@
-import { mkdir, writeFile } from 'node:fs/promises'
-import path from 'node:path'
-
 import { and, asc, desc, eq, inArray } from 'drizzle-orm'
 
 import { requireAdminSession } from '@/lib/auth'
@@ -19,6 +16,7 @@ import {
   type StoreSettings
 } from '@/lib/payment-methods'
 import { isOnlinePaymentAvailable } from '@/lib/payments'
+import { uploadImage } from '@/lib/storage'
 import { getCurrentTenant, StoreError, type Tenant } from '@/lib/tenant'
 import type { Category, Order, Product, User } from '@/lib/types'
 
@@ -188,36 +186,6 @@ export async function createCustomer(input: { name: string; email: string; passw
   }
 }
 
-function sanitizeFileName(value: string) {
-  const ext = path.extname(value).toLowerCase()
-  const base = path.basename(value, ext)
-  const safeBase = base
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-
-  return `${safeBase || 'imagem'}${ext || '.webp'}`
-}
-
-// Provisório até termos storage de objetos: grava em public/uploads, que só é servido em dev.
-async function saveProductImage(file: File, tenantSlug: string) {
-  if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
-    throw new StoreError(
-      'Upload de produto não está disponível neste ambiente sem armazenamento persistente',
-      503
-    )
-  }
-
-  const uploadDir = path.join(process.cwd(), 'public', 'uploads', tenantSlug)
-  await mkdir(uploadDir, { recursive: true })
-
-  const fileName = `${Date.now()}-${sanitizeFileName(file.name)}`
-  await writeFile(path.join(uploadDir, fileName), Buffer.from(await file.arrayBuffer()))
-  return `/uploads/${tenantSlug}/${fileName}`
-}
-
 export async function createProduct(formData: FormData): Promise<Product> {
   await requireAdminSession()
   const tenant = await getCurrentTenant()
@@ -240,7 +208,7 @@ export async function createProduct(formData: FormData): Promise<Product> {
 
   if (!category) throw new StoreError('Categoria inválida', 400)
 
-  const imageUrl = await saveProductImage(file, tenant.slug)
+  const imageUrl = await uploadImage(file, tenant.slug, 'products')
   const [row] = await db
     .insert(schema.products)
     .values({ tenantId: tenant.id, categoryId, name, priceCents, offer, imageUrl })

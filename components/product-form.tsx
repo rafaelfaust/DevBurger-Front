@@ -11,7 +11,9 @@ export function ProductForm({ categories }: { categories: Category[] }) {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setLoading(true)
-    const form = new FormData(event.currentTarget)
+    // currentTarget vira null depois do await.
+    const formElement = event.currentTarget
+    const form = new FormData(formElement)
 
     try {
       const response = await fetch('/api/admin/products', {
@@ -21,7 +23,7 @@ export function ProductForm({ categories }: { categories: Category[] }) {
       const data = await response.json()
       if (!response.ok) throw new Error(data.message)
       toast.success('Produto cadastrado')
-      event.currentTarget.reset()
+      formElement.reset()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Falha ao cadastrar')
     } finally {
@@ -51,7 +53,7 @@ export function ProductForm({ categories }: { categories: Category[] }) {
         </select>
       </label>
       <label>
-        Imagem
+        Imagem (JPG, PNG ou WebP, até 4 MB)
         <input accept="image/jpeg,image/png,image/webp" name="file" required type="file" />
       </label>
       <label className="checkbox">
