@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Image from 'next/image'
 
 import { Catalog } from '@/components/catalog'
-import { getCategories, getProducts } from '@/lib/api'
+import { getCategories, getProducts } from '@/lib/store'
 import { getTenantBranding } from '@/lib/branding-server'
 
 export async function generateMetadata(): Promise<Metadata> {

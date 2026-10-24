@@ -20,7 +20,8 @@ instância.
 - Next.js 16 com App Router
 - React 19 e TypeScript
 - Mercado Pago SDK para criação de preferências e consulta de pagamentos
-- Cookies `httpOnly` para autenticação
+- Postgres com Drizzle ORM (PGlite embutido em desenvolvimento)
+- Sessões no banco, cookie `httpOnly` só com token opaco
 - Server Components para catálogo e páginas administrativas
 
 ## Configuração local
@@ -30,6 +31,7 @@ Requer Node.js 20.19 ou superior.
 ```bash
 npm install
 copy .env.example .env.local
+npm run db:setup
 npm run dev
 ```
 
@@ -98,8 +100,10 @@ APP_SERVICE_TOKEN=
   marca.
 - `NEXT_PUBLIC_THEME_*`: controla as cores principais da interface sem editar o
   CSS base.
+- `DATABASE_URL`: Postgres (Neon, Supabase etc.). Vazio em desenvolvimento usa
+  PGlite em `.data/pglite`. Obrigatório em produção.
 - `ALLOW_DEMO_CHECKOUT`: simula aprovação local do checkout quando você quer
-  testar sem Mercado Pago.
+  testar sem Mercado Pago. Ignorado em produção.
 
 Nunca exponha o Access Token com prefixo `NEXT_PUBLIC_`.
 
@@ -136,10 +140,10 @@ O fluxo implementado usa Checkout Pro:
 
 1. O navegador envia apenas IDs e quantidades.
 2. O servidor recupera produtos e preços do catálogo.
-3. Um pedido é criado no backend quando o cliente está autenticado.
+3. O pedido é gravado com itens, taxa de entrega e total calculados no servidor.
 4. O Next cria uma preferência e redireciona para o Mercado Pago.
 5. O webhook valida a assinatura e consulta o pagamento diretamente na API.
-6. Pagamentos aprovados atualizam o pedido quando há um token de serviço.
+6. Pagamentos aprovados confirmam o pedido se o valor pago cobrir o total.
 
 Cadastre a URL abaixo no painel do Mercado Pago:
 
@@ -154,6 +158,9 @@ Para testes locais de webhook, use um túnel HTTPS e atualize
 
 ```bash
 npm run dev
+npm run db:setup     # aplica migrações e cria as lojas configuradas
+npm run db:generate  # gera migração após alterar lib/db/schema.ts
+npm run db:studio    # interface do banco
 npm run lint
 npm run typecheck
 npm run build
@@ -162,8 +169,10 @@ npm start
 
 ## Teste local
 
-Sem configurar nada além do `.env.local`, o projeto já cria sementes por tenant
-no primeiro acesso em `.data/store.json`.
+`npm run db:setup` cria no banco cada loja configurada (branding padrão e
+`APP_TENANT_CONFIG`) com catálogo de demonstração. Lojas existentes são
+mantidas. Com PGlite, pare o `npm run dev` antes de rodar os scripts `db:*`:
+apenas um processo acessa o banco embutido por vez.
 
 Credenciais iniciais por tenant:
 
@@ -181,9 +190,7 @@ estática, pois checkout, autenticação e webhooks executam no servidor.
 Antes de produção:
 
 - Use credenciais produtivas do Mercado Pago.
-- Defina `ALLOW_DEMO_CATALOG=false`.
-- Disponibilize a API em HTTPS.
-- Crie um token de serviço restrito à atualização de pedidos.
+- Configure `DATABASE_URL` e rode `npm run db:setup` contra esse banco.
 - Configure domínio, webhook e política de privacidade.
 
 ## Licença

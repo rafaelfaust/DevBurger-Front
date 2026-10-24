@@ -1,6 +1,6 @@
 import { OrderStatus } from '@/components/order-status'
-import { getOrders } from '@/lib/api'
 import { formatCurrency, formatDate } from '@/lib/format'
+import { getOrders } from '@/lib/store'
 
 export default async function OrdersPage() {
   const orders = await getOrders()
@@ -13,16 +13,16 @@ export default async function OrdersPage() {
       </div>
       <div className="orders-list">
         {orders.map(order => (
-          <article className="order-card" key={order._id}>
+          <article className="order-card" key={order.id}>
             <div className="order-card-head">
               <div>
-                <strong>#{order._id.slice(-8)}</strong>
+                <strong>#{order.id.slice(-8)}</strong>
                 <span>{order.user.name}</span>
                 <small>{formatDate(order.createdAt)}</small>
               </div>
               <OrderStatus
                 initialStatus={order.status}
-                orderId={order._id}
+                orderId={order.id}
               />
             </div>
             <ul>
@@ -36,6 +36,14 @@ export default async function OrdersPage() {
                   </strong>
                 </li>
               ))}
+              <li>
+                <span>Taxa de entrega</span>
+                <strong>{formatCurrency(order.deliveryFee)}</strong>
+              </li>
+              <li>
+                <span>Total</span>
+                <strong>{formatCurrency(order.total)}</strong>
+              </li>
             </ul>
           </article>
         ))}

@@ -1,6 +1,6 @@
 import Image from 'next/image'
 
-import { getProducts } from '@/lib/api'
+import { getProducts } from '@/lib/store'
 import { formatCurrency } from '@/lib/format'
 
 export default async function AdminProductsPage() {

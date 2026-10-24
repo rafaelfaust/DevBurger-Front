@@ -1,5 +1,5 @@
 import { ProductForm } from '@/components/product-form'
-import { getCategories } from '@/lib/api'
+import { getCategories } from '@/lib/store'
 
 export default async function NewProductPage() {
   const categories = await getCategories()

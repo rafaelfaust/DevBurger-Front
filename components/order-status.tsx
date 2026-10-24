@@ -3,26 +3,24 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 
-const statuses = [
-  'Aguardando pagamento',
-  'Pedido realizado',
-  'Em Preparação',
-  'Pronto',
-  'A Caminho',
-  'Entregue'
-]
+import {
+  orderStatusLabels,
+  orderStatusTransitions,
+  type OrderStatus as Status
+} from '@/lib/order-status'
 
 export function OrderStatus({
   orderId,
   initialStatus
 }: {
   orderId: string
-  initialStatus: string
+  initialStatus: Status
 }) {
   const [status, setStatus] = useState(initialStatus)
   const [loading, setLoading] = useState(false)
+  const nextStatuses = orderStatusTransitions[status]
 
-  async function update(nextStatus: string) {
+  async function update(nextStatus: Status) {
     setLoading(true)
     const previous = status
     setStatus(nextStatus)
@@ -46,13 +44,15 @@ export function OrderStatus({
 
   return (
     <select
-      disabled={loading}
-      onChange={event => update(event.target.value)}
+      disabled={loading || !nextStatuses.length}
+      onChange={event => update(event.target.value as Status)}
       value={status}
     >
-      {!statuses.includes(status) && <option>{status}</option>}
-      {statuses.map(item => (
-        <option key={item}>{item}</option>
+      <option value={status}>{orderStatusLabels[status]}</option>
+      {nextStatuses.map(item => (
+        <option key={item} value={item}>
+          {orderStatusLabels[item]}
+        </option>
       ))}
     </select>
   )

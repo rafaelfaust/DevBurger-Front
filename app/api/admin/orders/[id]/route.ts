@@ -1,32 +1,32 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 
-import { AuthError, requireAdminSession } from '@/lib/auth'
-import { LocalStoreError, updateLocalOrderStatus } from '@/lib/local-store'
+import { AuthError } from '@/lib/auth'
+import { orderStatuses } from '@/lib/order-status'
+import { StoreError, updateOrderStatus } from '@/lib/store'
 
-const schema = z.object({ status: z.string().min(2) })
+const schema = z.object({ status: z.enum(orderStatuses) })
 
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAdminSession()
     const { id } = await params
     const payload = schema.parse(await request.json())
-    const result = await updateLocalOrderStatus(id, payload.status)
+    const result = await updateOrderStatus(id, payload.status)
     return NextResponse.json(result)
   } catch (error) {
     return NextResponse.json(
       {
         message:
-          error instanceof LocalStoreError || error instanceof AuthError
+          error instanceof StoreError || error instanceof AuthError
             ? error.message
             : 'Dados inválidos'
       },
       {
         status:
-          error instanceof LocalStoreError || error instanceof AuthError
+          error instanceof StoreError || error instanceof AuthError
             ? error.status
             : 400
       }

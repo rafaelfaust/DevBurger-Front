@@ -1,12 +1,8 @@
-import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
-import { getSessionCookieNames } from '@/lib/branding-server'
+import { signOut } from '@/lib/auth'
 
-export async function POST(request: Request) {
-  const cookieStore = await cookies()
-  const sessionCookieNames = await getSessionCookieNames(request)
-  cookieStore.delete(sessionCookieNames.token)
-  cookieStore.delete(sessionCookieNames.user)
+export async function POST() {
+  await signOut()
   return NextResponse.json({ ok: true })
 }

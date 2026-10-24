@@ -3,7 +3,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 
 import { ProductCard } from '@/components/product-card'
-import { getProducts } from '@/lib/api'
+import { getProducts } from '@/lib/store'
 import { getTenantBranding } from '@/lib/branding-server'
 
 export default async function HomePage() {

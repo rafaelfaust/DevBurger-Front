@@ -256,6 +256,10 @@ export function getThemeStyle(value: Branding): CSSProperties {
   } as CSSProperties
 }
 
+export function listConfiguredBrandings(): Branding[] {
+  return [branding, ...tenantConfig.map(item => buildBranding(item.branding))]
+}
+
 export function resolveTenantBranding(host?: string): Branding {
   const normalizedHost = normalizeHost(host ?? '')
   const tenant = tenantConfig.find(item =>

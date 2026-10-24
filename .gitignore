@@ -26,3 +26,6 @@ next-server.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# uploads locais de produtos (dev)
+/public/uploads

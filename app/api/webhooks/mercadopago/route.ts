@@ -6,7 +6,7 @@ import {
 } from 'mercadopago'
 import { NextResponse } from 'next/server'
 
-import { markLocalOrderPaid } from '@/lib/local-store'
+import { confirmOrderPayment, StoreError } from '@/lib/store'
 
 type Notification = {
   type?: string
@@ -46,11 +46,18 @@ export async function POST(request: Request) {
   const payment = await new Payment(client).get({ id: dataId })
 
   if (payment.status === 'approved' && payment.external_reference) {
-    await markLocalOrderPaid({
-      id: String(payment.external_reference),
-      paymentId: String(payment.id),
-      paymentStatus: payment.status
-    })
+    try {
+      await confirmOrderPayment({
+        orderId: String(payment.external_reference),
+        paymentId: String(payment.id),
+        paymentStatus: payment.status,
+        amountPaid: Number(payment.transaction_amount ?? 0)
+      })
+    } catch (error) {
+      // Pedido inexistente ou valor divergente não melhora com retentativas do Mercado Pago.
+      if (!(error instanceof StoreError)) throw error
+      console.error('[webhook mercadopago]', payment.id, error.message)
+    }
   }
 
   return NextResponse.json({ received: true })

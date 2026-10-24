@@ -1,3 +1,5 @@
+import type { OrderStatus } from '@/lib/order-status'
+
 export type Category = {
   id: number
   name: string
@@ -18,21 +20,30 @@ export type CartItem = Product & {
   quantity: number
 }
 
+export type UserRole = 'owner' | 'staff' | 'customer'
+
 export type User = {
-  id?: string | number
+  id: string
   name: string
   email: string
-  admin?: boolean
+  role: UserRole
+  admin: boolean
+}
+
+export type OrderItem = {
+  id: number
+  name: string
+  price: number
+  quantity: number
 }
 
 export type Order = {
-  _id: string
-  status: string
+  id: string
+  status: OrderStatus
   createdAt: string
   user: Pick<User, 'name' | 'email'>
-  products: Array<
-    Product & {
-      quantity: number
-    }
-  >
+  products: OrderItem[]
+  subtotal: number
+  deliveryFee: number
+  total: number
 }

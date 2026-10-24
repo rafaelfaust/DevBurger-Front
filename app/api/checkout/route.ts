@@ -1,13 +1,10 @@
-import { randomUUID } from 'node:crypto'
-
 import { MercadoPagoConfig, Preference } from 'mercadopago'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 
-import { createBackendOrder, getProducts } from '@/lib/api'
 import { getSessionUser } from '@/lib/auth'
 import { getTenantBranding } from '@/lib/branding-server'
-import { markLocalOrderPaid } from '@/lib/local-store'
+import { confirmOrderPayment, createOrder, StoreError } from '@/lib/store'
 
 const schema = z.object({
   items: z
@@ -21,11 +18,15 @@ const schema = z.object({
     .max(30)
 })
 
+// Checkout falso para testes: local ou deploy de preview da Vercel. Nunca em produção.
+const demoCheckout =
+  process.env.ALLOW_DEMO_CHECKOUT === 'true' &&
+  (process.env.NODE_ENV !== 'production' || process.env.VERCEL_ENV === 'preview')
+
 export async function POST(request: Request) {
   try {
     const branding = await getTenantBranding(request)
     const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN
-    const demoCheckout = process.env.ALLOW_DEMO_CHECKOUT === 'true'
 
     if (!accessToken && !demoCheckout) {
       return NextResponse.json(
@@ -43,35 +44,22 @@ export async function POST(request: Request) {
     }
 
     const payload = schema.parse(await request.json())
-    const catalog = await getProducts()
-    const trustedItems = payload.items.map(item => {
-      const product = catalog.find(candidate => candidate.id === item.id)
-      if (!product) throw new Error(`Produto ${item.id} não encontrado`)
-      return { product, quantity: item.quantity }
-    })
-
-    const backendOrder = await createBackendOrder(
-      trustedItems.map(({ product, quantity }) => ({
-        id: product.id,
-        quantity
-      }))
-    )
-    const externalReference =
-      backendOrder?._id ?? backendOrder?.id ?? randomUUID()
+    const { order, lines, deliveryFee } = await createOrder(user, payload.items)
     const appUrl =
-      process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') ??
+      process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') ||
       new URL(request.url).origin
 
     if (demoCheckout) {
-      await markLocalOrderPaid({
-        id: String(externalReference),
+      await confirmOrderPayment({
+        orderId: order.id,
         paymentId: `demo-${Date.now()}`,
-        paymentStatus: 'approved'
+        paymentStatus: 'approved',
+        amountPaid: order.totalCents / 100
       })
 
       return NextResponse.json({
-        checkoutUrl: `${appUrl}/pagamento/sucesso?pedido=${externalReference}`,
-        preferenceId: `demo-${externalReference}`
+        checkoutUrl: `${appUrl}/pagamento/sucesso?pedido=${order.id}`,
+        preferenceId: `demo-${order.id}`
       })
     }
 
@@ -87,31 +75,35 @@ export async function POST(request: Request) {
     const result = await preference.create({
       body: {
         items: [
-          ...trustedItems.map(({ product, quantity }) => ({
+          ...lines.map(({ product, quantity }) => ({
             id: String(product.id),
             title: product.name,
             quantity,
             currency_id: 'BRL',
-            unit_price: Number(product.price),
+            unit_price: product.price,
             picture_url: product.url.startsWith('http')
               ? product.url
               : `${appUrl}${product.url}`
           })),
-          {
-            id: 'delivery',
-            title: 'Taxa de entrega',
-            quantity: 1,
-            currency_id: 'BRL',
-            unit_price: 5
-          }
+          ...(deliveryFee > 0
+            ? [
+                {
+                  id: 'delivery',
+                  title: 'Taxa de entrega',
+                  quantity: 1,
+                  currency_id: 'BRL',
+                  unit_price: deliveryFee
+                }
+              ]
+            : [])
         ],
         payer: {
           name: user.name,
           email: user.email
         },
-        external_reference: String(externalReference),
+        external_reference: order.id,
         metadata: {
-          order_id: String(externalReference),
+          order_id: order.id,
           customer_email: user.email
         },
         back_urls: {
@@ -138,6 +130,7 @@ export async function POST(request: Request) {
         : error instanceof Error
           ? error.message
           : 'Falha ao iniciar pagamento'
-    return NextResponse.json({ message }, { status: 400 })
+    const status = error instanceof StoreError ? error.status : 400
+    return NextResponse.json({ message }, { status })
   }
 }
