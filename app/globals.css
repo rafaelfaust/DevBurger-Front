@@ -930,6 +930,42 @@ footer span {
   margin: 0;
 }
 
+.appearance-form textarea {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  font: inherit;
+  padding: 12px;
+  resize: vertical;
+}
+
+.color-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+}
+
+.admin-form .color-field {
+  align-items: center;
+  flex-direction: row;
+  gap: 10px;
+}
+
+.admin-form .color-field input {
+  border-radius: 10px;
+  cursor: pointer;
+  height: 42px;
+  min-height: 42px;
+  padding: 2px;
+  width: 52px;
+}
+
+.domain-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 18px;
+}
+
 .page-loading {
   min-height: 60vh;
   padding: 80px;

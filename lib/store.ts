@@ -4,6 +4,7 @@ import path from 'node:path'
 import { and, asc, desc, eq, inArray } from 'drizzle-orm'
 
 import { requireAdminSession } from '@/lib/auth'
+import { buildBranding, type BrandingOverrides } from '@/lib/branding'
 import { getDb, schema } from '@/lib/db'
 import { orderStatusTransitions, type OrderStatus } from '@/lib/order-status'
 import { hashPassword } from '@/lib/password'
@@ -75,6 +76,36 @@ export async function updateStoreSettings(
     .returning()
 
   return toSettings(updated)
+}
+
+export async function getAppearance() {
+  await requireAdminSession()
+  const tenant = await getCurrentTenant()
+  const domains = await getDb()
+    .select({ host: schema.tenantDomains.host })
+    .from(schema.tenantDomains)
+    .where(eq(schema.tenantDomains.tenantId, tenant.id))
+
+  const platformDomain = process.env.PLATFORM_DOMAIN?.trim()
+  return {
+    overrides: tenant.branding,
+    // Valores em uso hoje, para mostrar o padrão quando o campo está vazio.
+    effective: buildBranding(tenant.slug, tenant.name, tenant.branding),
+    domains: [
+      ...(platformDomain ? [`${tenant.slug}.${platformDomain}`] : []),
+      ...domains.map(domain => domain.host)
+    ]
+  }
+}
+
+export async function updateAppearance(overrides: BrandingOverrides) {
+  await requireAdminSession()
+  const tenant = await getCurrentTenant()
+
+  await getDb()
+    .update(schema.tenants)
+    .set({ branding: overrides, name: overrides.brandName?.trim() || tenant.name })
+    .where(eq(schema.tenants.id, tenant.id))
 }
 
 export async function getProducts(): Promise<Product[]> {
