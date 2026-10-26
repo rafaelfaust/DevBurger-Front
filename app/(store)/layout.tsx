@@ -8,6 +8,7 @@ import { getSessionUser } from '@/lib/auth'
 import { getThemeStyle } from '@/lib/branding'
 import { getTenantBranding } from '@/lib/branding-server'
 import { getCurrentStoreStatus } from '@/lib/store'
+import { getCurrentTenant } from '@/lib/tenant'
 
 export async function generateViewport(): Promise<Viewport> {
   const branding = await getTenantBranding()
@@ -22,7 +23,11 @@ export async function generateViewport(): Promise<Viewport> {
 }
 
 export async function generateMetadata(): Promise<Metadata> {
-  const branding = await getTenantBranding()
+  const [tenant, branding] = await Promise.all([
+    getCurrentTenant().catch(() => null),
+    getTenantBranding()
+  ])
+  if (!tenant) return { title: 'Loja indisponível', robots: { index: false } }
 
   return {
     title: {
@@ -47,11 +52,23 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function StoreLayout({
   children
 }: Readonly<{ children: React.ReactNode }>) {
-  const [user, branding, storeStatus] = await Promise.all([
+  const [tenant, user, branding, storeStatus] = await Promise.all([
+    getCurrentTenant().catch(() => null),
     getSessionUser(),
     getTenantBranding(),
     getCurrentStoreStatus().catch(() => null)
   ])
+
+  // Endereço sem loja ativa (desativada pela plataforma ou inexistente).
+  if (!tenant) {
+    return (
+      <main className="store-unavailable">
+        <h1>Loja indisponível</h1>
+        <p>Esta loja não está recebendo pedidos no momento. Tente novamente mais tarde.</p>
+      </main>
+    )
+  }
+
   const themeStyle = getThemeStyle(branding)
 
   return (

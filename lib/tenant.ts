@@ -28,8 +28,9 @@ function defaultSlug() {
 }
 
 // Subdomínio da plataforma: "pizzaria.devburger.app" → "pizzaria".
+// Em desenvolvimento (sem PLATFORM_DOMAIN), "pizzaria.localhost" faz o mesmo papel.
 function slugFromPlatformDomain(host: string) {
-  const platformDomain = normalizeHost(process.env.PLATFORM_DOMAIN ?? '')
+  const platformDomain = normalizeHost(process.env.PLATFORM_DOMAIN ?? '') || 'localhost'
   if (!platformDomain || !host.endsWith(`.${platformDomain}`)) return null
 
   const sub = host.slice(0, -(platformDomain.length + 1))

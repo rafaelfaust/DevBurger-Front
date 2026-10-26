@@ -15,7 +15,8 @@
     "db:migrate": "tsx scripts/db-migrate.ts",
     "db:seed": "tsx scripts/db-seed.ts",
     "db:setup": "npm run db:migrate && npm run db:seed",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "platform:admin": "tsx scripts/platform-admin.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.11",

@@ -181,3 +181,25 @@ export const orderItems = pgTable(
   },
   table => [index('order_items_order_idx').on(table.orderId)]
 )
+
+// Administradores da plataforma (você e sua equipe). Separados dos usuários das lojas.
+export const platformAdmins = pgTable('platform_admins', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  email: text('email').notNull().unique(),
+  passwordHash: text('password_hash').notNull(),
+  createdAt: createdAt()
+})
+
+export const platformSessions = pgTable(
+  'platform_sessions',
+  {
+    id: text('id').primaryKey(),
+    adminId: uuid('admin_id')
+      .notNull()
+      .references(() => platformAdmins.id, { onDelete: 'cascade' }),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    createdAt: createdAt()
+  },
+  table => [index('platform_sessions_admin_idx').on(table.adminId)]
+)

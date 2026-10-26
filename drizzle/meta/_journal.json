@@ -36,6 +36,13 @@
       "when": 1793048674003,
       "tag": "0004_store_segment",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793058606469,
+      "tag": "0005_platform_admins",
+      "breakpoints": true
     }
   ]
 }
