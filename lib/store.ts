@@ -371,6 +371,15 @@ export async function updateOrderStatus(id: string, status: OrderStatus) {
   return updated
 }
 
+// Pedido online cujo checkout não pôde ser aberto: não deve ficar na fila da loja.
+export async function cancelUnpaidOrder(orderId: string) {
+  assertOrderId(orderId)
+  await getDb()
+    .update(schema.orders)
+    .set({ status: 'canceled', updatedAt: new Date() })
+    .where(and(eq(schema.orders.id, orderId), eq(schema.orders.status, 'awaiting_payment')))
+}
+
 // Chamado pelo webhook (sem host da loja), por isso localiza o pedido só pelo id.
 // Idempotente: só confirma pedidos que ainda aguardam pagamento e cujo valor confere.
 export async function confirmOrderPayment(input: {

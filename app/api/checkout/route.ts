@@ -6,7 +6,7 @@ import { getSessionUser } from '@/lib/auth'
 import { getTenantBranding } from '@/lib/branding-server'
 import { paymentMethods } from '@/lib/payment-methods'
 import { demoCheckout } from '@/lib/payments'
-import { confirmOrderPayment, createOrder, StoreError } from '@/lib/store'
+import { cancelUnpaidOrder, confirmOrderPayment, createOrder, StoreError } from '@/lib/store'
 
 const schema = z.object({
   items: z
@@ -72,8 +72,10 @@ export async function POST(request: Request) {
       accessToken,
       options: { timeout: 8000 }
     })
-    const preference = new Preference(client)
-    const result = await preference.create({
+    // O Mercado Pago recusa retorno automático para endereços sem HTTPS (ex.: localhost),
+    // e o webhook também não alcançaria a máquina local.
+    const publicUrl = appUrl.startsWith('https://')
+    const result = await new Preference(client).create({
       body: {
         items: [
           ...lines.map(({ product, quantity }) => ({
@@ -112,17 +114,27 @@ export async function POST(request: Request) {
           pending: `${appUrl}/pagamento/pendente`,
           failure: `${appUrl}/pagamento/falha`
         },
-        auto_return: 'approved',
-        notification_url: `${appUrl}/api/webhooks/mercadopago`,
+        ...(publicUrl && {
+          auto_return: 'approved',
+          notification_url: `${appUrl}/api/webhooks/mercadopago`
+        }),
         statement_descriptor: branding.statementDescriptor
       }
+    }).catch(async (error: { message?: string; status?: number }) => {
+      // O SDK rejeita com um objeto simples, não com Error.
+      console.error('[checkout] Mercado Pago recusou a preferência', error?.status, error?.message)
+      await cancelUnpaidOrder(order.id)
+      throw new StoreError('Não foi possível abrir o pagamento online agora. Tente outra forma de pagamento.', 502)
     })
 
     const checkoutUrl = accessToken.startsWith('TEST-')
       ? result.sandbox_init_point
       : result.init_point
 
-    if (!checkoutUrl) throw new Error('Mercado Pago não retornou o checkout')
+    if (!checkoutUrl) {
+      await cancelUnpaidOrder(order.id)
+      throw new StoreError('O Mercado Pago não devolveu o link de pagamento. Tente de novo.', 502)
+    }
     return NextResponse.json({ checkoutUrl, preferenceId: result.id })
   } catch (error) {
     const message =
