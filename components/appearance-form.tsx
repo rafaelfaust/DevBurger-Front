@@ -1,11 +1,18 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { FormEvent, useState } from 'react'
+import { FormEvent, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
 import { ImageUploadButton } from '@/components/image-upload-button'
-import type { Assets, Branding, BrandingOverrides, Theme } from '@/lib/branding'
+import {
+  buildBranding,
+  type Assets,
+  type Branding,
+  type BrandingOverrides,
+  type Theme
+} from '@/lib/branding'
+import { segmentPresets, segments, type Segment } from '@/lib/segments'
 
 type TextField = {
   name: keyof Omit<BrandingOverrides, 'theme' | 'assets'>
@@ -78,14 +85,25 @@ const imageFields: Array<{ name: keyof Assets; label: string }> = [
 export function AppearanceForm({
   overrides,
   effective,
-  domains
+  domains,
+  segment: initialSegment
 }: {
   overrides: BrandingOverrides
   effective: Branding
   domains: string[]
+  segment: Segment
 }) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [segment, setSegment] = useState(initialSegment)
+  // Só as cores escolhidas pela loja; vazio = cor do segmento.
+  const [customColors, setCustomColors] = useState<Partial<Theme>>(overrides.theme ?? {})
+
+  // Padrões do segmento escolhido, para mostrar na hora ao trocar o tipo de loja.
+  const preview = useMemo(
+    () => buildBranding(effective.namespace, effective.brandName, {}, segment),
+    [effective.namespace, effective.brandName, segment]
+  )
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -94,10 +112,16 @@ export function AppearanceForm({
     const value = (name: string) => String(form.get(name) ?? '')
 
     const payload = {
+      segment,
       ...Object.fromEntries(
         textSections.flatMap(section => section.fields).map(field => [field.name, value(field.name)])
       ),
-      theme: Object.fromEntries(colorFields.map(field => [field.name, value(`theme.${field.name}`)])),
+      theme: Object.fromEntries(
+        colorFields.map(field => {
+          const color = customColors[field.name] ?? ''
+          return [field.name, color.toLowerCase() === preview.theme[field.name].toLowerCase() ? '' : color]
+        })
+      ),
       assets: Object.fromEntries(imageFields.map(field => [field.name, value(`assets.${field.name}`)]))
     }
 
@@ -120,6 +144,24 @@ export function AppearanceForm({
 
   return (
     <form className="admin-form appearance-form" onSubmit={submit}>
+      <fieldset className="settings-group">
+        <legend>Tipo de loja</legend>
+        <label htmlFor="segment">
+          Segmento
+          <select id="segment" onChange={event => setSegment(event.target.value as Segment)} value={segment}>
+            {segments.map(item => (
+              <option key={item} value={item}>
+                {segmentPresets[item].label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <p className="settings-hint">
+          O segmento define os textos, cores e imagens padrão. O que você
+          personalizar abaixo continua valendo.
+        </p>
+      </fieldset>
+
       <p className="settings-hint">
         Campos vazios usam o texto padrão, mostrado em cinza dentro do campo.
       </p>
@@ -133,7 +175,7 @@ export function AppearanceForm({
               id: field.name,
               maxLength: field.maxLength,
               name: field.name,
-              placeholder: effective[field.name]
+              placeholder: preview[field.name]
             }
             return (
               <label htmlFor={field.name} key={field.name}>
@@ -152,15 +194,25 @@ export function AppearanceForm({
           {colorFields.map(field => (
             <label className="color-field" htmlFor={`theme.${field.name}`} key={field.name}>
               <input
-                defaultValue={overrides.theme?.[field.name] ?? effective.theme[field.name]}
                 id={`theme.${field.name}`}
-                name={`theme.${field.name}`}
+                onChange={event =>
+                  setCustomColors(current => ({ ...current, [field.name]: event.target.value }))
+                }
                 type="color"
+                value={customColors[field.name] || preview.theme[field.name]}
               />
               {field.label}
             </label>
           ))}
         </div>
+        <button
+          className="text-button"
+          disabled={!Object.values(customColors).some(Boolean)}
+          onClick={() => setCustomColors({})}
+          type="button"
+        >
+          Usar as cores do segmento
+        </button>
       </fieldset>
 
       <fieldset className="settings-group">
@@ -177,7 +229,7 @@ export function AppearanceForm({
                 defaultValue={overrides.assets?.[field.name] ?? ''}
                 id={`assets.${field.name}`}
                 name={`assets.${field.name}`}
-                placeholder={effective.assets[field.name]}
+                placeholder={preview.assets[field.name]}
               />
             </label>
             <ImageUploadButton label={field.label} targetId={`assets.${field.name}`} />

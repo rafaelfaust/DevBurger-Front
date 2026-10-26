@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 
 import { AuthError } from '@/lib/auth'
+import { segments } from '@/lib/segments'
 import { StoreError, updateAppearance } from '@/lib/store'
 
 const text = (max: number) => z.string().trim().max(max).optional()
@@ -20,6 +21,7 @@ const image = z
   .optional()
 
 const schema = z.object({
+  segment: z.enum(segments, 'Tipo de loja inválido'),
   brandName: text(60),
   brandWordmarkLead: text(20),
   brandWordmarkTrail: text(20),
@@ -70,8 +72,8 @@ function dropEmpty<T>(value: T): T {
 
 export async function PUT(request: Request) {
   try {
-    const payload = dropEmpty(schema.parse(await request.json()))
-    await updateAppearance(payload)
+    const { segment, ...overrides } = dropEmpty(schema.parse(await request.json()))
+    await updateAppearance(segment, overrides)
     return NextResponse.json({ ok: true })
   } catch (error) {
     const message =

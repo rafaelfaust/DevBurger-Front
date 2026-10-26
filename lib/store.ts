@@ -16,6 +16,7 @@ import {
   type StoreSettings
 } from '@/lib/payment-methods'
 import { isOnlinePaymentAvailable } from '@/lib/payments'
+import type { Segment } from '@/lib/segments'
 import { uploadImage } from '@/lib/storage'
 import { getCurrentTenant, StoreError, type Tenant } from '@/lib/tenant'
 import type { Category, Order, Product, User } from '@/lib/types'
@@ -125,9 +126,10 @@ export async function getAppearance() {
 
   const platformDomain = process.env.PLATFORM_DOMAIN?.trim()
   return {
+    segment: tenant.segment,
     overrides: tenant.branding,
     // Valores em uso hoje, para mostrar o padrão quando o campo está vazio.
-    effective: buildBranding(tenant.slug, tenant.name, tenant.branding),
+    effective: buildBranding(tenant.slug, tenant.name, tenant.branding, tenant.segment),
     domains: [
       ...(platformDomain ? [`${tenant.slug}.${platformDomain}`] : []),
       ...domains.map(domain => domain.host)
@@ -135,13 +137,13 @@ export async function getAppearance() {
   }
 }
 
-export async function updateAppearance(overrides: BrandingOverrides) {
+export async function updateAppearance(segment: Segment, overrides: BrandingOverrides) {
   await requireAdminSession()
   const tenant = await getCurrentTenant()
 
   await getDb()
     .update(schema.tenants)
-    .set({ branding: overrides, name: overrides.brandName?.trim() || tenant.name })
+    .set({ segment, branding: overrides, name: overrides.brandName?.trim() || tenant.name })
     .where(eq(schema.tenants.id, tenant.id))
 }
 
