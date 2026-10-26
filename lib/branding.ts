@@ -1,5 +1,7 @@
 import type { CSSProperties } from 'react'
 
+import { DEFAULT_SEGMENT, segmentDefaults, type Segment } from '@/lib/segments'
+
 export type Theme = {
   ink: string
   muted: string
@@ -67,12 +69,12 @@ export const defaultTheme: Theme = {
 }
 
 export const defaultAssets: Assets = {
-  logoPath: '/assets/logo.png',
-  faviconPath: '/assets/logo.png',
-  homeHeroPath: '/assets/bannerHome.webp',
-  catalogHeroPath: '/assets/bannerProduct.webp',
-  loginImagePath: '/assets/login-img.webp',
-  registerImagePath: '/assets/user-img.webp'
+  logoPath: '/segments/outro/logo.svg',
+  faviconPath: '/segments/outro/logo.svg',
+  homeHeroPath: '/segments/outro/hero.svg',
+  catalogHeroPath: '/segments/outro/hero.svg',
+  loginImagePath: '/segments/outro/hero.svg',
+  registerImagePath: '/segments/outro/hero.svg'
 }
 
 export function sanitizeNamespace(value: string) {
@@ -102,11 +104,20 @@ export function normalizeHost(value: string) {
 // Campos vazios contam como "não personalizado".
 const pick = (value: string | undefined, fallback: string) => value?.trim() || fallback
 
+// Camadas: o que a loja personalizou > padrão do segmento > texto genérico.
 export function buildBranding(
   namespace: string,
   fallbackName: string,
-  overrides: BrandingOverrides = {}
+  custom: BrandingOverrides = {},
+  segment: Segment = DEFAULT_SEGMENT
 ): Branding {
+  const base = segmentDefaults(segment)
+  const overrides: BrandingOverrides = {
+    ...base,
+    ...stripEmpty(custom as Record<string, string | undefined>),
+    theme: { ...base.theme, ...stripEmpty(custom.theme) },
+    assets: { ...base.assets, ...stripEmpty(custom.assets) }
+  }
   const brandName = pick(overrides.brandName, fallbackName)
   const brandWords = brandName.split(/\s+/).filter(Boolean)
   const wordmarkLead = pick(overrides.brandWordmarkLead, brandWords[0] ?? brandName)

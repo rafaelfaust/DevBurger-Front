@@ -9,7 +9,7 @@ export const getTenantBranding = cache(async () => {
   const tenant = await getCurrentTenant().catch(() => null)
   if (!tenant) return buildBranding('storefront', 'Delivery')
 
-  return buildBranding(tenant.slug, tenant.name, tenant.branding)
+  return buildBranding(tenant.slug, tenant.name, tenant.branding, tenant.segment)
 })
 
 export async function getSessionCookieNames() {

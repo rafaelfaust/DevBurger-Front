@@ -106,12 +106,15 @@ A loja de cada requisição é encontrada nesta ordem:
 
 Para criar lojas de exemplo, descreva-as em `APP_TENANT_CONFIG` e rode
 `npm run db:seed`. Os `hosts` viram domínios da loja; curingas (`*.`) são
-ignorados, pois `PLATFORM_DOMAIN` cobre esse caso.
+ignorados, pois `PLATFORM_DOMAIN` cobre esse caso. O campo `segment`
+(hamburgueria, pizzaria, acai, japonesa, marmitaria, lanchonete, doceria ou
+outro) define cardápio, textos, cores e imagens iniciais; a loja padrão usa
+`APP_DEFAULT_SEGMENT`. O dono pode trocar o segmento em Admin → Aparência.
 
 Exemplo:
 
 ```env
-APP_TENANT_CONFIG='[{"key":"acai-prime","hosts":["acai.localhost","acai.exemplo.com","*.acai.exemplo.com"],"branding":{"brandName":"Acai Prime","brandWordmarkLead":"ACAI","brandWordmarkTrail":"PRIME","namespace":"acai-prime","siteDescription":"Delivery premium com checkout online.","homeTitleHighlight":"entregar","assets":{"logoPath":"/tenants/acai-prime/logo.svg","faviconPath":"/tenants/acai-prime/favicon.svg","homeHeroPath":"/tenants/acai-prime/home-hero.svg","catalogHeroPath":"/tenants/acai-prime/catalog-hero.svg","loginImagePath":"/tenants/acai-prime/login-hero.svg","registerImagePath":"/tenants/acai-prime/register-hero.svg"},"theme":{"primary":"#6d28d9","accent":"#1d4ed8","paper":"#f8f7ff"}}},{"key":"pizza-flow","hosts":["pizza.localhost","pizza.exemplo.com"],"branding":{"brandName":"Pizza Flow","brandWordmarkLead":"PIZZA","brandWordmarkTrail":"FLOW","namespace":"pizza-flow","homeTitleHighlight":"faturar","assets":{"logoPath":"/tenants/pizza-flow/logo.svg","faviconPath":"/tenants/pizza-flow/favicon.svg","homeHeroPath":"/tenants/pizza-flow/home-hero.svg","catalogHeroPath":"/tenants/pizza-flow/catalog-hero.svg","loginImagePath":"/tenants/pizza-flow/login-hero.svg","registerImagePath":"/tenants/pizza-flow/register-hero.svg"},"theme":{"primary":"#f97316","accent":"#b91c1c","paper":"#fff7ed"}}}]'
+APP_TENANT_CONFIG='[{"key":"acai-prime","segment":"acai","hosts":["acai.localhost","acai.exemplo.com","*.acai.exemplo.com"],"branding":{"brandName":"Acai Prime","brandWordmarkLead":"ACAI","brandWordmarkTrail":"PRIME","namespace":"acai-prime","siteDescription":"Delivery premium com checkout online.","homeTitleHighlight":"entregar","assets":{"logoPath":"/tenants/acai-prime/logo.svg","faviconPath":"/tenants/acai-prime/favicon.svg","homeHeroPath":"/tenants/acai-prime/home-hero.svg","catalogHeroPath":"/tenants/acai-prime/catalog-hero.svg","loginImagePath":"/tenants/acai-prime/login-hero.svg","registerImagePath":"/tenants/acai-prime/register-hero.svg"},"theme":{"primary":"#6d28d9","accent":"#1d4ed8","paper":"#f8f7ff"}}},{"key":"pizza-flow","segment":"pizzaria","hosts":["pizza.localhost","pizza.exemplo.com"],"branding":{"brandName":"Pizza Flow","brandWordmarkLead":"PIZZA","brandWordmarkTrail":"FLOW","namespace":"pizza-flow","homeTitleHighlight":"faturar","assets":{"logoPath":"/tenants/pizza-flow/logo.svg","faviconPath":"/tenants/pizza-flow/favicon.svg","homeHeroPath":"/tenants/pizza-flow/home-hero.svg","catalogHeroPath":"/tenants/pizza-flow/catalog-hero.svg","loginImagePath":"/tenants/pizza-flow/login-hero.svg","registerImagePath":"/tenants/pizza-flow/register-hero.svg"},"theme":{"primary":"#f97316","accent":"#b91c1c","paper":"#fff7ed"}}}]'
 ```
 
 Importante: como o JSON pode conter `#` nas cores do tema, coloque o valor

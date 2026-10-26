@@ -2,11 +2,11 @@ import { loadEnvConfig } from '@next/env'
 
 loadEnvConfig(process.cwd())
 
-// Cria as lojas descritas no .env (marca padrão + APP_TENANT_CONFIG) com dados de demonstração.
+// Cria as lojas descritas no .env (marca padrão + APP_TENANT_CONFIG) com o cardápio de exemplo do segmento.
 // Lojas que já existem só recebem a marca (se ainda não tiverem) e os domínios que faltarem.
 async function main() {
   const { eq } = await import('drizzle-orm')
-  const { buildBranding } = await import('@/lib/branding')
+  const { segmentPresets, sampleProductImage } = await import('@/lib/segments')
   const { listSeedTenants } = await import('@/lib/branding-seed')
   const { getDb, schema } = await import('@/lib/db')
   const { hashPassword } = await import('@/lib/password')
@@ -18,6 +18,12 @@ async function main() {
     const [existing] = await db.select().from(schema.tenants).where(eq(schema.tenants.slug, slug))
 
     if (existing) {
+      if (existing.segment === 'outro' && seed.segment !== 'outro') {
+        await db
+          .update(schema.tenants)
+          .set({ segment: seed.segment })
+          .where(eq(schema.tenants.id, existing.id))
+      }
       if (!Object.keys(existing.branding).length && Object.keys(seed.branding).length) {
         await db
           .update(schema.tenants)
@@ -30,14 +36,14 @@ async function main() {
           .values(seed.hosts.map(host => ({ host, tenantId: existing.id })))
           .onConflictDoNothing()
       }
-      console.log(`- ${slug}: já existe (marca e domínios conferidos)`)
+      console.log(`- ${slug}: já existe (segmento, marca e domínios conferidos)`)
       continue
     }
 
     await db.transaction(async tx => {
       const [tenant] = await tx
         .insert(schema.tenants)
-        .values({ slug, name: seed.name, branding: seed.branding })
+        .values({ slug, name: seed.name, segment: seed.segment, branding: seed.branding })
         .returning()
 
       if (seed.hosts.length) {
@@ -47,22 +53,23 @@ async function main() {
           .onConflictDoNothing()
       }
 
-      const [highlights, combos, drinks] = await tx
+      // Cardápio de exemplo do segmento.
+      const preset = segmentPresets[seed.segment]
+      const categories = await tx
         .insert(schema.categories)
-        .values([
-          { tenantId: tenant.id, name: 'Destaques', position: 0 },
-          { tenantId: tenant.id, name: 'Combos', position: 1 },
-          { tenantId: tenant.id, name: 'Bebidas', position: 2 }
-        ])
+        .values(preset.categories.map((name, position) => ({ tenantId: tenant.id, name, position })))
         .returning()
 
-      const { assets } = buildBranding(slug, seed.name, seed.branding)
-      await tx.insert(schema.products).values([
-        { tenantId: tenant.id, categoryId: highlights.id, name: 'Sanduiche Especial', priceCents: 2990, offer: true, imageUrl: assets.homeHeroPath },
-        { tenantId: tenant.id, categoryId: highlights.id, name: 'Receita da Casa', priceCents: 3490, offer: true, imageUrl: assets.catalogHeroPath },
-        { tenantId: tenant.id, categoryId: combos.id, name: 'Combo Premium', priceCents: 4290, imageUrl: assets.loginImagePath },
-        { tenantId: tenant.id, categoryId: drinks.id, name: 'Bebida Gelada', priceCents: 800, imageUrl: assets.logoPath }
-      ])
+      await tx.insert(schema.products).values(
+        preset.products.map(product => ({
+          tenantId: tenant.id,
+          categoryId: categories[product.category].id,
+          name: product.name,
+          priceCents: product.priceCents,
+          offer: product.offer ?? false,
+          imageUrl: sampleProductImage(seed.segment)
+        }))
+      )
 
       await tx.insert(schema.users).values([
         { tenantId: tenant.id, name: 'Administrador', email: `admin@${slug}.local`, role: 'owner', passwordHash: hashPassword('123456') },

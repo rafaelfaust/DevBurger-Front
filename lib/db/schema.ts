@@ -13,6 +13,7 @@ import {
 
 import type { BrandingOverrides } from '@/lib/branding'
 import type { OpeningHours, StatusOverride } from '@/lib/opening-hours'
+import type { Segment } from '@/lib/segments'
 
 export const userRole = pgEnum('user_role', ['owner', 'staff', 'customer'])
 
@@ -46,7 +47,9 @@ export const tenants = pgTable('tenants', {
   acceptsCardOnDelivery: boolean('accepts_card_on_delivery').notNull().default(true),
   acceptsPixOnDelivery: boolean('accepts_pix_on_delivery').notNull().default(true),
   acceptsOnline: boolean('accepts_online').notNull().default(false),
-  // Só os campos que a loja personalizou; o resto vem do padrão da plataforma.
+  // Tipo de loja: define os padrões de textos, cores e imagens (lib/segments.ts).
+  segment: text('segment').$type<Segment>().notNull().default('outro'),
+  // Só os campos que a loja personalizou; o resto vem do padrão do segmento.
   branding: jsonb('branding').$type<BrandingOverrides>().notNull().default({}),
   // Sem turnos cadastrados a loja fica sempre aberta.
   openingHours: jsonb('opening_hours').$type<OpeningHours>().notNull().default({}),

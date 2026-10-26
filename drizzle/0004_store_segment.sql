@@ -1,0 +1,1 @@
+ALTER TABLE "tenants" ADD COLUMN "segment" text DEFAULT 'outro' NOT NULL;

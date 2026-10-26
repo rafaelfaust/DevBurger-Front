@@ -1,10 +1,12 @@
 import { normalizeHost, sanitizeNamespace, type BrandingOverrides } from '@/lib/branding'
+import { DEFAULT_SEGMENT, isSegment, type Segment } from '@/lib/segments'
 
 // Lojas iniciais descritas no .env. Usado só pelo db:seed: em execução a marca vem do banco.
 export type SeedTenant = {
   slug: string
   name: string
   hosts: string[]
+  segment: Segment
   branding: BrandingOverrides
 }
 
@@ -63,6 +65,11 @@ export function defaultTenantSlug() {
   return sanitizeNamespace(env('NEXT_PUBLIC_APP_NAMESPACE') ?? env('NEXT_PUBLIC_BRAND_NAME') ?? '') || 'storefront'
 }
 
+function defaultSegment(): Segment {
+  const value = env('APP_DEFAULT_SEGMENT')
+  return isSegment(value) ? value : DEFAULT_SEGMENT
+}
+
 function parseTenantConfig(): SeedTenant[] {
   const raw = env('APP_TENANT_CONFIG')
   if (!raw) return []
@@ -87,7 +94,8 @@ function parseTenantConfig(): SeedTenant[] {
             .filter((host: string) => !host.startsWith('*.'))
         : []
 
-      return [{ slug, name: overrides.brandName ?? slug, hosts, branding: overrides }]
+      const segment = isSegment(item.segment) ? item.segment : DEFAULT_SEGMENT
+      return [{ slug, name: overrides.brandName ?? slug, hosts, segment, branding: overrides }]
     })
   } catch {
     return []
@@ -99,7 +107,7 @@ export function listSeedTenants(): SeedTenant[] {
   const slug = defaultTenantSlug()
 
   return [
-    { slug, name: branding.brandName ?? slug, hosts: [], branding },
+    { slug, name: branding.brandName ?? slug, hosts: [], segment: defaultSegment(), branding },
     ...parseTenantConfig().filter(tenant => tenant.slug !== slug)
   ]
 }
