@@ -1251,3 +1251,10 @@ footer {
   display: grid;
   gap: 4px;
 }
+
+/* Envolve a loja: as cores do tema da loja são aplicadas aqui (ver app/(store)/layout.tsx). */
+.store-shell {
+  background: var(--paper);
+  color: var(--ink);
+  min-height: 100vh;
+}
