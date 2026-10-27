@@ -10,6 +10,7 @@ import {
 } from '@/lib/opening-hours'
 import { orderStatusTransitions, type OrderStatus } from '@/lib/order-status'
 import { hashPassword } from '@/lib/password'
+import { normalizeBrMobile } from '@/lib/phone'
 import {
   enabledPaymentMethods,
   type PaymentMethod,
@@ -462,7 +463,13 @@ export async function getOrders(): Promise<Order[]> {
     id: order.id,
     status: order.status,
     createdAt: order.createdAt.toISOString(),
-    user: { name: customer.name, email: customer.email },
+    // Contato informado no pedido; pedidos antigos (antes do telefone) usam o cadastro.
+    customer: {
+      name: order.customerName ?? customer.name,
+      phone: order.customerPhone ?? customer.phone,
+      email: customer.email
+    },
+    whatsappOptIn: order.whatsappOptIn,
     products: items
       .filter(item => item.orderId === order.id)
       .map(item => ({
@@ -538,14 +545,79 @@ async function releaseExpiredReservations(tenantId: string) {
   }
 }
 
+// Quem está pedindo: conta logada (sessionUser) ou cliente sem cadastro (nome + celular).
+export type OrderContact = {
+  name: string
+  phone: string
+  whatsappOptIn: boolean
+  sessionUser?: User | null
+}
+
+// Limite contra pedidos falsos em massa com o mesmo telefone.
+const MAX_ORDERS_PER_PHONE = 5
+const ORDER_BURST_MINUTES = 10
+
+// Encontra o cliente pelo telefone (ou usa a conta logada) e guarda o nome mais recente.
+async function resolveCustomer(tenantId: string, contact: OrderContact, phone: string) {
+  const db = getDb()
+  if (contact.sessionUser) {
+    // Conta logada sem telefone ganha o informado, se nenhum outro cliente já usa esse número.
+    if (!contact.sessionUser.phone) {
+      await db
+        .update(schema.users)
+        .set({ phone })
+        .where(eq(schema.users.id, contact.sessionUser.id))
+        .catch(() => {})
+    }
+    return contact.sessionUser.id
+  }
+
+  const [customer] = await db
+    .insert(schema.users)
+    .values({ tenantId, name: contact.name, phone, role: 'customer' })
+    .onConflictDoUpdate({
+      target: [schema.users.tenantId, schema.users.phone],
+      set: { name: contact.name },
+      // Só renomeia clientes; conta da equipe com esse telefone não é alterada.
+      setWhere: eq(schema.users.role, 'customer')
+    })
+    .returning({ id: schema.users.id })
+  if (customer) return customer.id
+
+  const [existing] = await db
+    .select({ id: schema.users.id })
+    .from(schema.users)
+    .where(and(eq(schema.users.tenantId, tenantId), eq(schema.users.phone, phone)))
+  return existing.id
+}
+
 export async function createOrder(
-  customer: User,
+  contact: OrderContact,
   input: Array<{ id: number; quantity: number }>,
   payment: { method: PaymentMethod; changeFor?: number | null }
 ) {
   const tenant = await getCurrentTenant()
   const db = getDb()
   await releaseExpiredReservations(tenant.id)
+
+  const name = contact.name.trim()
+  if (name.length < 2 || name.length > 80) throw new StoreError('Informe seu nome', 400)
+  const phone = normalizeBrMobile(contact.phone)
+  if (!phone) throw new StoreError('Informe um celular válido com DDD, ex.: (11) 98765-4321', 400)
+
+  const [{ recent }] = await db
+    .select({ recent: count(schema.orders.id) })
+    .from(schema.orders)
+    .where(
+      and(
+        eq(schema.orders.tenantId, tenant.id),
+        eq(schema.orders.customerPhone, phone),
+        gte(schema.orders.createdAt, new Date(Date.now() - ORDER_BURST_MINUTES * 60_000))
+      )
+    )
+  if (recent >= MAX_ORDERS_PER_PHONE) {
+    throw new StoreError('Muitos pedidos seguidos com este telefone. Aguarde alguns minutos.', 429)
+  }
 
   const status = statusOf(tenant)
   if (!status.open) {
@@ -611,6 +683,8 @@ export async function createOrder(
     throw new StoreError('O troco precisa ser para um valor maior que o total', 400)
   }
 
+  const customerId = await resolveCustomer(tenant.id, { ...contact, name }, phone)
+
   const order = await db.transaction(async tx => {
     // Desconto condicional: se outro pedido levou as últimas unidades, a transação desfaz tudo.
     for (const { product, quantity } of limited) {
@@ -626,7 +700,10 @@ export async function createOrder(
       .insert(schema.orders)
       .values({
         tenantId: tenant.id,
-        customerId: customer.id,
+        customerId,
+        customerName: name,
+        customerPhone: phone,
+        whatsappOptIn: contact.whatsappOptIn,
         subtotalCents,
         deliveryFeeCents,
         totalCents,

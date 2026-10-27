@@ -29,7 +29,9 @@ export type UserRole = 'owner' | 'staff' | 'customer'
 export type User = {
   id: string
   name: string
-  email: string
+  // Cliente que pediu sem cadastro não tem e-mail.
+  email: string | null
+  phone: string | null
   role: UserRole
   admin: boolean
 }
@@ -45,7 +47,8 @@ export type Order = {
   id: string
   status: OrderStatus
   createdAt: string
-  user: Pick<User, 'name' | 'email'>
+  customer: { name: string; phone: string | null; email: string | null }
+  whatsappOptIn: boolean
   products: OrderItem[]
   subtotal: number
   deliveryFee: number

@@ -1771,3 +1771,38 @@ footer {
   font-weight: 700;
   margin: 6px 0 0;
 }
+
+/* ---------- Dados do cliente no checkout ---------- */
+.customer-fields label:not(.optin) {
+  align-items: stretch;
+  cursor: default;
+  flex-direction: column;
+  font-size: 0.9rem;
+  gap: 6px;
+}
+
+.customer-fields input:not([type='checkbox']) {
+  background: #2a2722;
+  border: 1px solid #4c4841;
+  border-radius: 10px;
+  color: white;
+  min-height: 44px;
+  padding: 0 12px;
+}
+
+.customer-fields .optin {
+  align-items: flex-start;
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.customer-fields .optin input {
+  accent-color: var(--yellow);
+  margin-top: 3px;
+}
+
+.customer-phone {
+  color: var(--green);
+  font-size: 0.88rem;
+  font-weight: 700;
+}

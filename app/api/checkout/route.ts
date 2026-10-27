@@ -25,7 +25,13 @@ const schema = z.object({
     .min(1)
     .max(30),
   paymentMethod: z.enum(paymentMethods),
-  changeFor: z.number().positive().max(10000).nullish()
+  changeFor: z.number().positive().max(10000).nullish(),
+  // Sem cadastro: nome e celular bastam para pedir.
+  customer: z.object({
+    name: z.string().trim().min(2, 'Informe seu nome').max(80),
+    phone: z.string().trim().min(10, 'Informe seu celular com DDD').max(20),
+    whatsappOptIn: z.boolean()
+  }, { error: 'Informe seu nome e celular' })
 })
 
 export async function POST(request: Request) {
@@ -33,19 +39,14 @@ export async function POST(request: Request) {
     const branding = await getTenantBranding()
     const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN
 
+    // Opcional: com conta logada o pedido entra no histórico dela.
     const user = await getSessionUser()
-    if (!user) {
-      return NextResponse.json(
-        { message: 'Entre na sua conta antes de finalizar o pedido' },
-        { status: 401 }
-      )
-    }
-
     const payload = schema.parse(await request.json())
-    const { order, lines, deliveryFee } = await createOrder(user, payload.items, {
-      method: payload.paymentMethod,
-      changeFor: payload.changeFor
-    })
+    const { order, lines, deliveryFee } = await createOrder(
+      { ...payload.customer, sessionUser: user },
+      payload.items,
+      { method: payload.paymentMethod, changeFor: payload.changeFor }
+    )
     const appUrl =
       process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') ||
       new URL(request.url).origin
@@ -107,15 +108,10 @@ export async function POST(request: Request) {
               ]
             : [])
         ],
-        payer: {
-          name: user.name,
-          email: user.email
-        },
+        // Só o nome: cliente sem cadastro não tem e-mail, e o Mercado Pago pede o resto.
+        payer: { name: order.customerName ?? undefined },
         external_reference: order.id,
-        metadata: {
-          order_id: order.id,
-          customer_email: user.email
-        },
+        metadata: { order_id: order.id },
         back_urls: {
           success: `${appUrl}/pagamento/sucesso`,
           pending: `${appUrl}/pagamento/pendente`,
@@ -151,7 +147,9 @@ export async function POST(request: Request) {
   } catch (error) {
     const message =
       error instanceof z.ZodError
-        ? 'Carrinho inválido'
+        ? error.issues[0]?.path[0] === 'customer'
+          ? error.issues[0].message
+          : 'Carrinho inválido'
         : error instanceof Error
           ? error.message
           : 'Falha ao iniciar pagamento'

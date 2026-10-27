@@ -30,6 +30,7 @@ function toUser(row: typeof schema.users.$inferSelect): User {
     id: row.id,
     name: row.name,
     email: row.email,
+    phone: row.phone,
     role: row.role,
     admin: row.role !== 'customer'
   }
@@ -48,7 +49,7 @@ export async function signIn(input: { email: string; password: string }) {
       )
     )
 
-  if (!row || !verifyPassword(input.password, row.passwordHash)) {
+  if (!row?.passwordHash || !verifyPassword(input.password, row.passwordHash)) {
     throw new StoreError('E-mail ou senha inválidos', 401)
   }
 

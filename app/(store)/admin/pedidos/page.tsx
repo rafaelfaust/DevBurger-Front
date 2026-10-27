@@ -1,6 +1,7 @@
 import { OrderStatus } from '@/components/order-status'
 import { formatCurrency, formatDate } from '@/lib/format'
 import { paymentMethodShortLabels } from '@/lib/payment-methods'
+import { formatBrPhone, whatsappLink } from '@/lib/phone'
 import { getOrders } from '@/lib/store'
 
 export default async function OrdersPage() {
@@ -18,7 +19,17 @@ export default async function OrdersPage() {
             <div className="order-card-head">
               <div>
                 <strong>#{order.id.slice(-8)}</strong>
-                <span>{order.user.name}</span>
+                <span>{order.customer.name}</span>
+                {order.customer.phone && (
+                  <a
+                    className="customer-phone"
+                    href={whatsappLink(order.customer.phone)}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    {formatBrPhone(order.customer.phone)} · abrir WhatsApp
+                  </a>
+                )}
                 <small>{formatDate(order.createdAt)}</small>
                 <small>
                   {paymentMethodShortLabels[order.paymentMethod]}

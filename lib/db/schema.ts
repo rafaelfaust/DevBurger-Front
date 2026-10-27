@@ -82,12 +82,18 @@ export const users = pgTable(
       .notNull()
       .references(() => tenants.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
-    email: text('email').notNull(),
-    passwordHash: text('password_hash').notNull(),
+    // Cliente que pediu sem cadastro tem só nome e telefone (sem e-mail nem senha).
+    email: text('email'),
+    passwordHash: text('password_hash'),
+    // Celular com DDI, só dígitos: 5511987654321.
+    phone: text('phone'),
     role: userRole('role').notNull().default('customer'),
     createdAt: createdAt()
   },
-  table => [uniqueIndex('users_tenant_email_idx').on(table.tenantId, table.email)]
+  table => [
+    uniqueIndex('users_tenant_email_idx').on(table.tenantId, table.email),
+    uniqueIndex('users_tenant_phone_idx').on(table.tenantId, table.phone)
+  ]
 )
 
 // O cookie guarda o token puro; aqui só o hash SHA-256 dele.
@@ -160,6 +166,11 @@ export const orders = pgTable(
     paymentMethod: paymentMethod('payment_method').notNull().default('online'),
     // Troco para (só pagamento em dinheiro).
     changeForCents: integer('change_for_cents'),
+    // Contato informado neste pedido (o cliente pode trocar de nome entre pedidos).
+    customerName: text('customer_name'),
+    customerPhone: text('customer_phone'),
+    // Cliente aceitou receber avisos do pedido no WhatsApp (consentimento LGPD).
+    whatsappOptIn: boolean('whatsapp_opt_in').notNull().default(false),
     // O pedido descontou estoque; ao cancelar, as unidades voltam.
     stockReserved: boolean('stock_reserved').notNull().default(false),
     paymentId: text('payment_id'),

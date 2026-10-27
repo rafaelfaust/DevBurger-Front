@@ -8,10 +8,14 @@ import type { PaymentMethod } from '@/lib/payment-methods'
 
 export function CheckoutButton({
   paymentMethod,
-  changeFor
+  changeFor,
+  customer,
+  onSuccess
 }: {
   paymentMethod: PaymentMethod | null
   changeFor: number | null
+  customer: { name: string; phone: string; whatsappOptIn: boolean }
+  onSuccess: () => void
 }) {
   const { items, clear } = useCart()
   const [loading, setLoading] = useState(false)
@@ -19,6 +23,16 @@ export function CheckoutButton({
 
   async function checkout() {
     if (!items.length || !paymentMethod) return
+    if (customer.name.trim().length < 2) {
+      toast.error('Informe seu nome')
+      document.getElementById('customer-name')?.focus()
+      return
+    }
+    if (customer.phone.replace(/\D/g, '').length < 10) {
+      toast.error('Informe seu celular com DDD')
+      document.getElementById('customer-phone')?.focus()
+      return
+    }
     setLoading(true)
 
     try {
@@ -28,13 +42,16 @@ export function CheckoutButton({
         body: JSON.stringify({
           items: items.map(item => ({ id: item.id, quantity: item.quantity })),
           paymentMethod,
-          changeFor
+          changeFor,
+          customer
         })
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.message)
+      onSuccess()
       clear()
-      window.location.assign(data.checkoutUrl)
+      // URL completa: o checkout online leva para o Mercado Pago (outro domínio).
+      window.location.href = data.checkoutUrl
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : 'Falha ao finalizar o pedido'

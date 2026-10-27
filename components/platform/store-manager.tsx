@@ -15,7 +15,7 @@ type Store = {
   segment: Segment
   active: boolean
   domains: string[]
-  owners: Array<{ id: string; name: string; email: string }>
+  owners: Array<{ id: string; name: string; email: string | null }>
   url: string
 }
 
@@ -175,7 +175,7 @@ export function StoreManager({ store }: { store: Store }) {
           <div className="owner-row" key={owner.id}>
             <div>
               <strong>{owner.name}</strong>
-              <span className="settings-hint">{owner.email}</span>
+              <span className="settings-hint">{owner.email ?? "sem e-mail"}</span>
             </div>
             <button
               className="text-button"

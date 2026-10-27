@@ -50,6 +50,13 @@
       "when": 1793061721075,
       "tag": "0006_stock_control",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793106037419,
+      "tag": "0007_guest_checkout",
+      "breakpoints": true
     }
   ]
 }

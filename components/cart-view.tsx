@@ -10,16 +10,56 @@ import { formatCurrency } from '@/lib/format'
 import type { StoreStatus } from '@/lib/opening-hours'
 import { paymentMethodLabels, type PaymentMethod } from '@/lib/payment-methods'
 
+// Dados do cliente sem cadastro ficam no navegador para o próximo pedido.
+const CUSTOMER_KEY = 'storefront:customer'
+
+// Formata enquanto digita: 11987654321 -> (11) 98765-4321
+function maskPhone(value: string) {
+  const digits = value.replace(/\D/g, '').slice(0, 11)
+  if (digits.length <= 2) return digits
+  if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`
+}
+
+export type CustomerPrefill = { name: string; phone: string } | null
+
+function readSavedCustomer(): CustomerPrefill {
+  if (typeof window === 'undefined') return null
+  try {
+    return JSON.parse(localStorage.getItem(CUSTOMER_KEY) ?? 'null')
+  } catch {
+    // Sem acesso ao armazenamento do navegador: o cliente digita de novo.
+    return null
+  }
+}
+
 export function CartView({
   deliveryFee,
   paymentMethods,
-  status
+  status,
+  prefill
 }: {
   deliveryFee: number
   paymentMethods: PaymentMethod[]
   status: StoreStatus
+  // Conta logada: nome e telefone já vêm preenchidos.
+  prefill: CustomerPrefill
 }) {
   const { items, total, increase, decrease, remove } = useCart()
+  // Lido uma vez: os campos só aparecem depois que o carrinho carrega no navegador,
+  // então o HTML do servidor e o do cliente batem.
+  const [saved] = useState(readSavedCustomer)
+  const [customerName, setCustomerName] = useState(prefill?.name || saved?.name || '')
+  const [customerPhone, setCustomerPhone] = useState(maskPhone(prefill?.phone || saved?.phone || ''))
+  const [whatsappOptIn, setWhatsappOptIn] = useState(true)
+
+  const rememberCustomer = () => {
+    try {
+      localStorage.setItem(CUSTOMER_KEY, JSON.stringify({ name: customerName, phone: customerPhone }))
+    } catch {
+      // Ignora: lembrar os dados é só uma conveniência.
+    }
+  }
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(
     paymentMethods[0] ?? null
   )
@@ -80,6 +120,40 @@ export function CartView({
           <strong>Total</strong>
           <strong>{formatCurrency(orderTotal)}</strong>
         </div>
+        <fieldset className="payment-options customer-fields">
+          <legend>Seus dados</legend>
+          <label htmlFor="customer-name">
+            Nome
+            <input
+              autoComplete="name"
+              id="customer-name"
+              maxLength={80}
+              onChange={event => setCustomerName(event.target.value)}
+              placeholder="Como devemos te chamar?"
+              value={customerName}
+            />
+          </label>
+          <label htmlFor="customer-phone">
+            Celular (WhatsApp)
+            <input
+              autoComplete="tel-national"
+              id="customer-phone"
+              inputMode="tel"
+              onChange={event => setCustomerPhone(maskPhone(event.target.value))}
+              placeholder="(11) 98765-4321"
+              value={customerPhone}
+            />
+          </label>
+          <label className="optin" htmlFor="customer-optin">
+            <input
+              checked={whatsappOptIn}
+              id="customer-optin"
+              onChange={event => setWhatsappOptIn(event.target.checked)}
+              type="checkbox"
+            />
+            Quero receber as atualizações do pedido no WhatsApp
+          </label>
+        </fieldset>
         <fieldset className="payment-options">
           <legend>Forma de pagamento</legend>
           {paymentMethods.map(method => (
@@ -115,7 +189,12 @@ export function CartView({
           )}
         </fieldset>
         {status.open ? (
-          <CheckoutButton changeFor={changeValue} paymentMethod={paymentMethod} />
+          <CheckoutButton
+            changeFor={changeValue}
+            customer={{ name: customerName, phone: customerPhone, whatsappOptIn }}
+            onSuccess={rememberCustomer}
+            paymentMethod={paymentMethod}
+          />
         ) : (
           <p className="checkout-closed">
             <strong>Loja fechada agora.</strong> {status.label}. Seu carrinho
