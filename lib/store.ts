@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray } from 'drizzle-orm'
+import { and, asc, count, desc, eq, inArray } from 'drizzle-orm'
 
 import { requireAdminSession } from '@/lib/auth'
 import { buildBranding, type BrandingOverrides } from '@/lib/branding'
@@ -38,7 +38,8 @@ function toProduct(row: typeof schema.products.$inferSelect): Product {
     price: toReais(row.priceCents),
     url: row.imageUrl,
     offer: row.offer,
-    category_id: row.categoryId
+    category_id: row.categoryId,
+    description: row.description ?? undefined
   }
 }
 
@@ -188,35 +189,219 @@ export async function createCustomer(input: { name: string; email: string; passw
   }
 }
 
-export async function createProduct(formData: FormData): Promise<Product> {
+export type AdminProduct = Product & {
+  description: string
+  active: boolean
+  categoryName: string
+}
+
+// Lista do painel: inclui produtos pausados.
+export async function getAdminProducts(): Promise<AdminProduct[]> {
   await requireAdminSession()
   const tenant = await getCurrentTenant()
-  const db = getDb()
+  const rows = await getDb()
+    .select({ product: schema.products, categoryName: schema.categories.name })
+    .from(schema.products)
+    .innerJoin(schema.categories, eq(schema.categories.id, schema.products.categoryId))
+    .where(eq(schema.products.tenantId, tenant.id))
+    .orderBy(asc(schema.categories.position), asc(schema.categories.id), asc(schema.products.name))
 
+  return rows.map(({ product, categoryName }) => ({
+    ...toProduct(product),
+    description: product.description ?? '',
+    active: product.active,
+    categoryName
+  }))
+}
+
+export async function getAdminProduct(id: number): Promise<AdminProduct> {
+  const products = await getAdminProducts()
+  const product = products.find(item => item.id === id)
+  if (!product) throw new StoreError('Produto não encontrado', 404)
+  return product
+}
+
+// Campos do formulário de produto; a foto é obrigatória só ao cadastrar.
+async function parseProductForm(formData: FormData, tenantId: string, requireImage: boolean) {
   const name = String(formData.get('name') ?? '').trim()
-  const priceCents = Math.round(Number(formData.get('price') ?? 0) * 100)
+  const description = String(formData.get('description') ?? '').trim()
+  const priceCents = Math.round(Number(String(formData.get('price') ?? '0').replace(',', '.')) * 100)
   const categoryId = Number(formData.get('category_id') ?? 0)
   const offer = formData.get('offer') === 'true'
   const file = formData.get('file')
+  const hasImage = file instanceof File && file.size > 0
 
-  if (!name || !(priceCents > 0) || !categoryId || !(file instanceof File) || !file.size) {
-    throw new StoreError('Dados inválidos do produto', 400)
-  }
+  if (!name || name.length > 80) throw new StoreError('Informe o nome do produto (até 80 letras)', 400)
+  if (description.length > 300) throw new StoreError('A descrição pode ter até 300 letras', 400)
+  if (!(priceCents > 0) || priceCents > 10_000_00) throw new StoreError('Informe um preço válido', 400)
+  if (requireImage && !hasImage) throw new StoreError('Escolha uma foto para o produto', 400)
 
-  const [category] = await db
+  const [category] = await getDb()
     .select({ id: schema.categories.id })
     .from(schema.categories)
-    .where(and(eq(schema.categories.id, categoryId), eq(schema.categories.tenantId, tenant.id)))
+    .where(and(eq(schema.categories.id, categoryId), eq(schema.categories.tenantId, tenantId)))
+  if (!category) throw new StoreError('Escolha uma categoria', 400)
 
-  if (!category) throw new StoreError('Categoria inválida', 400)
+  return {
+    values: { name, description: description || null, priceCents, categoryId, offer },
+    file: hasImage ? (file as File) : null
+  }
+}
 
-  const imageUrl = await uploadImage(file, tenant.slug, 'products')
-  const [row] = await db
+export async function createProduct(formData: FormData): Promise<Product> {
+  await requireAdminSession()
+  const tenant = await getCurrentTenant()
+  const { values, file } = await parseProductForm(formData, tenant.id, true)
+
+  const imageUrl = await uploadImage(file!, tenant.slug, 'products')
+  const [row] = await getDb()
     .insert(schema.products)
-    .values({ tenantId: tenant.id, categoryId, name, priceCents, offer, imageUrl })
+    .values({ tenantId: tenant.id, ...values, imageUrl })
     .returning()
 
   return toProduct(row)
+}
+
+export async function updateProduct(id: number, formData: FormData): Promise<Product> {
+  await requireAdminSession()
+  const tenant = await getCurrentTenant()
+  const { values, file } = await parseProductForm(formData, tenant.id, false)
+  const imageUrl = file ? await uploadImage(file, tenant.slug, 'products') : undefined
+
+  const [row] = await getDb()
+    .update(schema.products)
+    .set({ ...values, ...(imageUrl && { imageUrl }) })
+    .where(and(eq(schema.products.id, id), eq(schema.products.tenantId, tenant.id)))
+    .returning()
+  if (!row) throw new StoreError('Produto não encontrado', 404)
+
+  return toProduct(row)
+}
+
+// Pausado = some do cardápio sem apagar (ex.: acabou o estoque).
+export async function setProductActive(id: number, active: boolean) {
+  await requireAdminSession()
+  const tenant = await getCurrentTenant()
+  const [row] = await getDb()
+    .update(schema.products)
+    .set({ active })
+    .where(and(eq(schema.products.id, id), eq(schema.products.tenantId, tenant.id)))
+    .returning({ id: schema.products.id })
+  if (!row) throw new StoreError('Produto não encontrado', 404)
+}
+
+// Pedidos antigos guardam nome e preço do item, então o histórico não se perde.
+export async function deleteProduct(id: number) {
+  await requireAdminSession()
+  const tenant = await getCurrentTenant()
+  const [row] = await getDb()
+    .delete(schema.products)
+    .where(and(eq(schema.products.id, id), eq(schema.products.tenantId, tenant.id)))
+    .returning({ id: schema.products.id })
+  if (!row) throw new StoreError('Produto não encontrado', 404)
+}
+
+export type AdminCategory = Category & { position: number; products: number }
+
+export async function getAdminCategories(): Promise<AdminCategory[]> {
+  await requireAdminSession()
+  const tenant = await getCurrentTenant()
+  const db = getDb()
+  const [categories, counts] = await Promise.all([
+    db
+      .select({ id: schema.categories.id, name: schema.categories.name, position: schema.categories.position })
+      .from(schema.categories)
+      .where(eq(schema.categories.tenantId, tenant.id))
+      .orderBy(asc(schema.categories.position), asc(schema.categories.id)),
+    db
+      .select({ categoryId: schema.products.categoryId, total: count(schema.products.id) })
+      .from(schema.products)
+      .where(eq(schema.products.tenantId, tenant.id))
+      .groupBy(schema.products.categoryId)
+  ])
+
+  return categories.map(category => ({
+    ...category,
+    products: counts.find(item => item.categoryId === category.id)?.total ?? 0
+  }))
+}
+
+function categoryName(raw: string) {
+  const name = raw.trim()
+  if (!name || name.length > 40) throw new StoreError('Informe o nome da categoria (até 40 letras)', 400)
+  return name
+}
+
+export async function createCategory(rawName: string) {
+  await requireAdminSession()
+  const tenant = await getCurrentTenant()
+  const db = getDb()
+  const [last] = await db
+    .select({ position: schema.categories.position })
+    .from(schema.categories)
+    .where(eq(schema.categories.tenantId, tenant.id))
+    .orderBy(desc(schema.categories.position))
+    .limit(1)
+
+  const [row] = await db
+    .insert(schema.categories)
+    .values({ tenantId: tenant.id, name: categoryName(rawName), position: (last?.position ?? -1) + 1 })
+    .returning({ id: schema.categories.id })
+  return row
+}
+
+export async function renameCategory(id: number, rawName: string) {
+  await requireAdminSession()
+  const tenant = await getCurrentTenant()
+  const [row] = await getDb()
+    .update(schema.categories)
+    .set({ name: categoryName(rawName) })
+    .where(and(eq(schema.categories.id, id), eq(schema.categories.tenantId, tenant.id)))
+    .returning({ id: schema.categories.id })
+  if (!row) throw new StoreError('Categoria não encontrada', 404)
+}
+
+// Troca de lugar com a vizinha de cima ou de baixo (renumera tudo para evitar empates).
+export async function moveCategory(id: number, direction: 'up' | 'down') {
+  await requireAdminSession()
+  const tenant = await getCurrentTenant()
+  const db = getDb()
+  const ordered = await db
+    .select({ id: schema.categories.id })
+    .from(schema.categories)
+    .where(eq(schema.categories.tenantId, tenant.id))
+    .orderBy(asc(schema.categories.position), asc(schema.categories.id))
+
+  const index = ordered.findIndex(item => item.id === id)
+  if (index < 0) throw new StoreError('Categoria não encontrada', 404)
+  const target = direction === 'up' ? index - 1 : index + 1
+  if (target < 0 || target >= ordered.length) return
+
+  ;[ordered[index], ordered[target]] = [ordered[target], ordered[index]]
+  await db.transaction(async tx => {
+    for (const [position, item] of ordered.entries()) {
+      await tx.update(schema.categories).set({ position }).where(eq(schema.categories.id, item.id))
+    }
+  })
+}
+
+export async function deleteCategory(id: number) {
+  await requireAdminSession()
+  const tenant = await getCurrentTenant()
+  const db = getDb()
+  const [{ total }] = await db
+    .select({ total: count(schema.products.id) })
+    .from(schema.products)
+    .where(and(eq(schema.products.categoryId, id), eq(schema.products.tenantId, tenant.id)))
+  if (total > 0) {
+    throw new StoreError(`Esta categoria tem ${total} produto(s). Mova ou exclua os produtos antes.`, 409)
+  }
+
+  const [row] = await db
+    .delete(schema.categories)
+    .where(and(eq(schema.categories.id, id), eq(schema.categories.tenantId, tenant.id)))
+    .returning({ id: schema.categories.id })
+  if (!row) throw new StoreError('Categoria não encontrada', 404)
 }
 
 export async function getOrders(): Promise<Order[]> {
@@ -292,7 +477,12 @@ export async function createOrder(
 
   const lines = input.map(item => {
     const product = catalog.find(candidate => candidate.id === item.id)
-    if (!product) throw new StoreError(`Produto ${item.id} não encontrado`, 404)
+    if (!product) {
+      throw new StoreError(
+        'Um item do seu carrinho não está mais disponível. Remova-o do carrinho e tente de novo.',
+        409
+      )
+    }
     return { product, quantity: item.quantity }
   })
 

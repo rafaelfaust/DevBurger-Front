@@ -29,8 +29,8 @@ export function ProductCard({ product }: { product: Product }) {
       </div>
       <div className="product-content">
         <div>
-          <p className="eyebrow">Feito na hora</p>
           <h3>{product.name}</h3>
+          {product.description && <p className="product-description">{product.description}</p>}
         </div>
         <div className="product-footer">
           <strong>{formatCurrency(product.price)}</strong>

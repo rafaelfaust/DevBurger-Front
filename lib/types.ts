@@ -14,6 +14,7 @@ export type Product = {
   url: string
   offer?: boolean
   category_id: number
+  description?: string
   category?: Category | string
 }
 
