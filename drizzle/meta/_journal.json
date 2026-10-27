@@ -43,6 +43,13 @@
       "when": 1793058606469,
       "tag": "0005_platform_admins",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793061721075,
+      "tag": "0006_stock_control",
+      "breakpoints": true
     }
   ]
 }

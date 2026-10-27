@@ -6,7 +6,13 @@ import { getSessionUser } from '@/lib/auth'
 import { getTenantBranding } from '@/lib/branding-server'
 import { paymentMethods } from '@/lib/payment-methods'
 import { demoCheckout } from '@/lib/payments'
-import { cancelUnpaidOrder, confirmOrderPayment, createOrder, StoreError } from '@/lib/store'
+import {
+  cancelUnpaidOrder,
+  confirmOrderPayment,
+  createOrder,
+  PAYMENT_WINDOW_MINUTES,
+  StoreError
+} from '@/lib/store'
 
 const schema = z.object({
   items: z
@@ -75,6 +81,7 @@ export async function POST(request: Request) {
     // O Mercado Pago recusa retorno automático para endereços sem HTTPS (ex.: localhost),
     // e o webhook também não alcançaria a máquina local.
     const publicUrl = appUrl.startsWith('https://')
+    const paymentDeadline = new Date(order.createdAt.getTime() + PAYMENT_WINDOW_MINUTES * 60_000)
     const result = await new Preference(client).create({
       body: {
         items: [
@@ -118,6 +125,11 @@ export async function POST(request: Request) {
           auto_return: 'approved',
           notification_url: `${appUrl}/api/webhooks/mercadopago`
         }),
+        // O link vale o mesmo prazo da reserva do pedido (depois disso ele é cancelado).
+        expires: true,
+        expiration_date_from: order.createdAt.toISOString(),
+        expiration_date_to: paymentDeadline.toISOString(),
+        date_of_expiration: paymentDeadline.toISOString(),
         statement_descriptor: branding.statementDescriptor
       }
     }).catch(async (error: { message?: string; status?: number }) => {

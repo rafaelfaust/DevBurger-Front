@@ -15,6 +15,8 @@ export type Product = {
   offer?: boolean
   category_id: number
   description?: string
+  // Só existe com o controle de estoque da loja ligado e o produto com estoque definido.
+  stockLeft?: number
   category?: Category | string
 }
 

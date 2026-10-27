@@ -1,5 +1,6 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { FormEvent, useState } from 'react'
 import { toast } from 'sonner'
 
@@ -12,6 +13,7 @@ const offlineOptions = [
 ] as const
 
 export function SettingsForm({ settings }: { settings: StoreSettings }) {
+  const router = useRouter()
   const [loading, setLoading] = useState(false)
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -28,12 +30,14 @@ export function SettingsForm({ settings }: { settings: StoreSettings }) {
           acceptsCash: form.has('acceptsCash'),
           acceptsCardOnDelivery: form.has('acceptsCardOnDelivery'),
           acceptsPixOnDelivery: form.has('acceptsPixOnDelivery'),
-          acceptsOnline: form.has('acceptsOnline')
+          acceptsOnline: form.has('acceptsOnline'),
+          stockControl: form.has('stockControl')
         })
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.message)
       toast.success('Configurações salvas')
+      router.refresh()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Falha ao salvar')
     } finally {
@@ -89,6 +93,25 @@ export function SettingsForm({ settings }: { settings: StoreSettings }) {
             conexão com o Mercado Pago estiver ativa.
           </p>
         )}
+      </fieldset>
+
+      <fieldset className="settings-group">
+        <legend>Estoque</legend>
+        <label className="checkbox" htmlFor="stockControl">
+          <input
+            defaultChecked={settings.stockControl}
+            id="stockControl"
+            name="stockControl"
+            type="checkbox"
+          />
+          Controlar estoque dos produtos
+        </label>
+        <p className="settings-hint">
+          Ligado: cada produto ganha um campo de estoque (vazio = sem limite), os
+          pedidos descontam as unidades e o produto aparece como esgotado ao zerar.
+          Pedido cancelado devolve as unidades. Desligado: nada é contado; para
+          tirar um item do cardápio, use Pausar.
+        </p>
       </fieldset>
 
       <button className="button" disabled={loading}>

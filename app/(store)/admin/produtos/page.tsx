@@ -3,10 +3,10 @@ import Link from 'next/link'
 
 import { ProductRowActions } from '@/components/product-row-actions'
 import { formatCurrency } from '@/lib/format'
-import { getAdminProducts } from '@/lib/store'
+import { getAdminProducts, getStoreSettings } from '@/lib/store'
 
 export default async function AdminProductsPage() {
-  const products = await getAdminProducts()
+  const [products, settings] = await Promise.all([getAdminProducts(), getStoreSettings()])
   const paused = products.filter(product => !product.active).length
   // A lista já vem ordenada por categoria; agrupa mantendo a ordem.
   const groups = products.reduce<Array<{ name: string; items: typeof products }>>((acc, product) => {
@@ -46,6 +46,14 @@ export default async function AdminProductsPage() {
                   <div className="admin-product-badges">
                     {product.offer && <span className="badge-offer">Oferta</span>}
                     {!product.active && <span className="badge-paused">Pausado</span>}
+                    {settings.stockControl &&
+                      (product.stockQuantity === null ? (
+                        <span className="badge-stock">Sem limite</span>
+                      ) : product.stockQuantity <= 0 ? (
+                        <span className="badge-soldout">Esgotado</span>
+                      ) : (
+                        <span className="badge-stock">{product.stockQuantity} em estoque</span>
+                      ))}
                   </div>
                 </div>
                 <ProductRowActions active={product.active} id={product.id} name={product.name} />

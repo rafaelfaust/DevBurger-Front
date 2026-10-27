@@ -1,8 +1,8 @@
-import { and, asc, count, desc, eq, inArray } from 'drizzle-orm'
+import { and, asc, count, desc, eq, gte, inArray, isNotNull, lt, sql } from 'drizzle-orm'
 
 import { requireAdminSession } from '@/lib/auth'
 import { buildBranding, type BrandingOverrides } from '@/lib/branding'
-import { getDb, schema } from '@/lib/db'
+import { getDb, schema, type Database } from '@/lib/db'
 import {
   getStoreStatus,
   type OpeningHours,
@@ -31,7 +31,9 @@ function assertOrderId(id: string) {
   if (!uuidPattern.test(id)) throw new StoreError('Pedido não encontrado', 404)
 }
 
-function toProduct(row: typeof schema.products.$inferSelect): Product {
+// stockControl = controle de estoque da loja ligado; só então o saldo aparece no cardápio.
+function toProduct(row: typeof schema.products.$inferSelect, stockControl = false): Product {
+  const limited = stockControl && row.stockQuantity !== null
   return {
     id: row.id,
     name: row.name,
@@ -39,7 +41,8 @@ function toProduct(row: typeof schema.products.$inferSelect): Product {
     url: row.imageUrl,
     offer: row.offer,
     category_id: row.categoryId,
-    description: row.description ?? undefined
+    description: row.description ?? undefined,
+    ...(limited && { stockLeft: Math.max(row.stockQuantity ?? 0, 0) })
   }
 }
 
@@ -50,7 +53,8 @@ function toSettings(tenant: Tenant): StoreSettings {
     acceptsCardOnDelivery: tenant.acceptsCardOnDelivery,
     acceptsPixOnDelivery: tenant.acceptsPixOnDelivery,
     acceptsOnline: tenant.acceptsOnline,
-    onlineAvailable: isOnlinePaymentAvailable()
+    onlineAvailable: isOnlinePaymentAvailable(),
+    stockControl: tenant.stockControl
   }
 }
 
@@ -59,12 +63,17 @@ export async function getStoreSettings(): Promise<StoreSettings> {
 }
 
 export async function updateStoreSettings(
-  input: Omit<StoreSettings, 'onlineAvailable'>
+  input: Omit<StoreSettings, 'onlineAvailable' | 'stockControl'> & { stockControl?: boolean }
 ): Promise<StoreSettings> {
   await requireAdminSession()
   const tenant = await getCurrentTenant()
 
-  if (!enabledPaymentMethods({ ...input, onlineAvailable: isOnlinePaymentAvailable() }).length) {
+  const candidate = {
+    ...input,
+    onlineAvailable: isOnlinePaymentAvailable(),
+    stockControl: input.stockControl ?? tenant.stockControl
+  }
+  if (!enabledPaymentMethods(candidate).length) {
     throw new StoreError('Ative pelo menos uma forma de pagamento', 400)
   }
 
@@ -75,7 +84,8 @@ export async function updateStoreSettings(
       acceptsCash: input.acceptsCash,
       acceptsCardOnDelivery: input.acceptsCardOnDelivery,
       acceptsPixOnDelivery: input.acceptsPixOnDelivery,
-      acceptsOnline: input.acceptsOnline
+      acceptsOnline: input.acceptsOnline,
+      stockControl: input.stockControl
     })
     .where(eq(schema.tenants.id, tenant.id))
     .returning()
@@ -150,13 +160,14 @@ export async function updateAppearance(segment: Segment, overrides: BrandingOver
 
 export async function getProducts(): Promise<Product[]> {
   const tenant = await getCurrentTenant()
+  if (tenant.stockControl) await releaseExpiredReservations(tenant.id)
   const rows = await getDb()
     .select()
     .from(schema.products)
     .where(and(eq(schema.products.tenantId, tenant.id), eq(schema.products.active, true)))
     .orderBy(desc(schema.products.createdAt))
 
-  return rows.map(toProduct)
+  return rows.map(row => toProduct(row, tenant.stockControl))
 }
 
 export async function getCategories(): Promise<Category[]> {
@@ -193,12 +204,15 @@ export type AdminProduct = Product & {
   description: string
   active: boolean
   categoryName: string
+  // null = sem limite.
+  stockQuantity: number | null
 }
 
 // Lista do painel: inclui produtos pausados.
 export async function getAdminProducts(): Promise<AdminProduct[]> {
   await requireAdminSession()
   const tenant = await getCurrentTenant()
+  if (tenant.stockControl) await releaseExpiredReservations(tenant.id)
   const rows = await getDb()
     .select({ product: schema.products, categoryName: schema.categories.name })
     .from(schema.products)
@@ -207,10 +221,11 @@ export async function getAdminProducts(): Promise<AdminProduct[]> {
     .orderBy(asc(schema.categories.position), asc(schema.categories.id), asc(schema.products.name))
 
   return rows.map(({ product, categoryName }) => ({
-    ...toProduct(product),
+    ...toProduct(product, tenant.stockControl),
     description: product.description ?? '',
     active: product.active,
-    categoryName
+    categoryName,
+    stockQuantity: product.stockQuantity
   }))
 }
 
@@ -236,6 +251,16 @@ async function parseProductForm(formData: FormData, tenantId: string, requireIma
   if (!(priceCents > 0) || priceCents > 10_000_00) throw new StoreError('Informe um preço válido', 400)
   if (requireImage && !hasImage) throw new StoreError('Escolha uma foto para o produto', 400)
 
+  // Campo só enviado com o controle de estoque ligado. Vazio = sem limite.
+  let stockQuantity: number | null | undefined
+  if (formData.has('stock')) {
+    const raw = String(formData.get('stock') ?? '').trim()
+    stockQuantity = raw === '' ? null : Number(raw)
+    if (stockQuantity !== null && (!Number.isInteger(stockQuantity) || stockQuantity < 0 || stockQuantity > 100_000)) {
+      throw new StoreError('Estoque deve ser um número inteiro de 0 a 100.000, ou vazio para sem limite', 400)
+    }
+  }
+
   const [category] = await getDb()
     .select({ id: schema.categories.id })
     .from(schema.categories)
@@ -243,7 +268,14 @@ async function parseProductForm(formData: FormData, tenantId: string, requireIma
   if (!category) throw new StoreError('Escolha uma categoria', 400)
 
   return {
-    values: { name, description: description || null, priceCents, categoryId, offer },
+    values: {
+      name,
+      description: description || null,
+      priceCents,
+      categoryId,
+      offer,
+      ...(stockQuantity !== undefined && { stockQuantity })
+    },
     file: hasImage ? (file as File) : null
   }
 }
@@ -408,6 +440,8 @@ export async function getOrders(): Promise<Order[]> {
   await requireAdminSession()
   const tenant = await getCurrentTenant()
   const db = getDb()
+  // Pedidos online abandonados saem da fila (e devolvem estoque) antes de listar.
+  await releaseExpiredReservations(tenant.id)
 
   const rows = await db
     .select({ order: schema.orders, customer: schema.users })
@@ -446,6 +480,64 @@ export async function getOrders(): Promise<Order[]> {
 }
 
 // Preços e taxa sempre vêm do banco; o cliente só informa ids e quantidades.
+type Tx = Parameters<Parameters<Database['transaction']>[0]>[0]
+
+// Prazo para pagar um pedido online. Depois disso ele é cancelado e o estoque volta;
+// o link do Mercado Pago expira no mesmo prazo.
+export const PAYMENT_WINDOW_MINUTES = 60
+
+// Devolve ao estoque as unidades de um pedido que tinha reservado (uma vez só).
+async function releaseStock(tx: Tx, orderId: string) {
+  const [order] = await tx
+    .update(schema.orders)
+    .set({ stockReserved: false })
+    .where(and(eq(schema.orders.id, orderId), eq(schema.orders.stockReserved, true)))
+    .returning({ id: schema.orders.id })
+  if (!order) return
+
+  const items = await tx
+    .select({ productId: schema.orderItems.productId, quantity: schema.orderItems.quantity })
+    .from(schema.orderItems)
+    .where(eq(schema.orderItems.orderId, orderId))
+
+  for (const item of items) {
+    if (!item.productId) continue
+    await tx
+      .update(schema.products)
+      .set({ stockQuantity: sql`${schema.products.stockQuantity} + ${item.quantity}` })
+      .where(and(eq(schema.products.id, item.productId), isNotNull(schema.products.stockQuantity)))
+  }
+}
+
+async function cancelOrder(tx: Tx, orderId: string, fromStatus: OrderStatus) {
+  const [updated] = await tx
+    .update(schema.orders)
+    .set({ status: 'canceled', updatedAt: new Date() })
+    .where(and(eq(schema.orders.id, orderId), eq(schema.orders.status, fromStatus)))
+    .returning({ id: schema.orders.id, status: schema.orders.status })
+  if (updated) await releaseStock(tx, orderId)
+  return updated
+}
+
+// Cancela pedidos online não pagos dentro do prazo. Roda ao abrir cardápio, pedidos e
+// checkout, então não depende de agendador.
+async function releaseExpiredReservations(tenantId: string) {
+  const db = getDb()
+  const expired = await db
+    .select({ id: schema.orders.id })
+    .from(schema.orders)
+    .where(
+      and(
+        eq(schema.orders.tenantId, tenantId),
+        eq(schema.orders.status, 'awaiting_payment'),
+        lt(schema.orders.createdAt, new Date(Date.now() - PAYMENT_WINDOW_MINUTES * 60_000))
+      )
+    )
+  for (const order of expired) {
+    await db.transaction(tx => cancelOrder(tx, order.id, 'awaiting_payment'))
+  }
+}
+
 export async function createOrder(
   customer: User,
   input: Array<{ id: number; quantity: number }>,
@@ -453,6 +545,7 @@ export async function createOrder(
 ) {
   const tenant = await getCurrentTenant()
   const db = getDb()
+  await releaseExpiredReservations(tenant.id)
 
   const status = statusOf(tenant)
   if (!status.open) {
@@ -475,16 +568,35 @@ export async function createOrder(
       )
     )
 
-  const lines = input.map(item => {
-    const product = catalog.find(candidate => candidate.id === item.id)
+  // Soma quantidades repetidas do mesmo produto.
+  const quantities = new Map<number, number>()
+  for (const item of input) quantities.set(item.id, (quantities.get(item.id) ?? 0) + item.quantity)
+
+  const lines = [...quantities].map(([id, quantity]) => {
+    const product = catalog.find(candidate => candidate.id === id)
     if (!product) {
       throw new StoreError(
         'Um item do seu carrinho não está mais disponível. Remova-o do carrinho e tente de novo.',
         409
       )
     }
-    return { product, quantity: item.quantity }
+    return { product, quantity }
   })
+
+  const stockProblem = (product: (typeof catalog)[number]) =>
+    new StoreError(
+      (product.stockQuantity ?? 0) <= 0
+        ? `${product.name} esgotou. Remova do carrinho para continuar.`
+        : `Só restam ${product.stockQuantity} unidade(s) de ${product.name}. Ajuste a quantidade no carrinho.`,
+      409
+    )
+
+  const limited = tenant.stockControl
+    ? lines.filter(({ product }) => product.stockQuantity !== null)
+    : []
+  for (const { product, quantity } of limited) {
+    if (quantity > (product.stockQuantity ?? 0)) throw stockProblem(product)
+  }
 
   const subtotalCents = lines.reduce(
     (sum, { product, quantity }) => sum + product.priceCents * quantity,
@@ -500,6 +612,16 @@ export async function createOrder(
   }
 
   const order = await db.transaction(async tx => {
+    // Desconto condicional: se outro pedido levou as últimas unidades, a transação desfaz tudo.
+    for (const { product, quantity } of limited) {
+      const [taken] = await tx
+        .update(schema.products)
+        .set({ stockQuantity: sql`${schema.products.stockQuantity} - ${quantity}` })
+        .where(and(eq(schema.products.id, product.id), gte(schema.products.stockQuantity, quantity)))
+        .returning({ id: schema.products.id })
+      if (!taken) throw stockProblem(product)
+    }
+
     const [created] = await tx
       .insert(schema.orders)
       .values({
@@ -510,6 +632,7 @@ export async function createOrder(
         totalCents,
         paymentMethod: payment.method,
         changeForCents,
+        stockReserved: limited.length > 0,
         // Pagamento na entrega vai direto para a cozinha.
         status: payment.method === 'online' ? 'awaiting_payment' : 'confirmed'
       })
@@ -551,11 +674,16 @@ export async function updateOrderStatus(id: string, status: OrderStatus) {
     throw new StoreError('Mudança de status não permitida', 409)
   }
 
-  const [updated] = await db
-    .update(schema.orders)
-    .set({ status, updatedAt: new Date() })
-    .where(and(eq(schema.orders.id, id), eq(schema.orders.status, order.status)))
-    .returning({ id: schema.orders.id, status: schema.orders.status })
+  const updated =
+    status === 'canceled'
+      ? await db.transaction(tx => cancelOrder(tx, id, order.status))
+      : (
+          await db
+            .update(schema.orders)
+            .set({ status, updatedAt: new Date() })
+            .where(and(eq(schema.orders.id, id), eq(schema.orders.status, order.status)))
+            .returning({ id: schema.orders.id, status: schema.orders.status })
+        )[0]
 
   if (!updated) throw new StoreError('O pedido mudou enquanto você editava', 409)
   return updated
@@ -564,10 +692,7 @@ export async function updateOrderStatus(id: string, status: OrderStatus) {
 // Pedido online cujo checkout não pôde ser aberto: não deve ficar na fila da loja.
 export async function cancelUnpaidOrder(orderId: string) {
   assertOrderId(orderId)
-  await getDb()
-    .update(schema.orders)
-    .set({ status: 'canceled', updatedAt: new Date() })
-    .where(and(eq(schema.orders.id, orderId), eq(schema.orders.status, 'awaiting_payment')))
+  await getDb().transaction(tx => cancelOrder(tx, orderId, 'awaiting_payment'))
 }
 
 // Chamado pelo webhook (sem host da loja), por isso localiza o pedido só pelo id.
@@ -583,6 +708,10 @@ export async function confirmOrderPayment(input: {
   const [order] = await db.select().from(schema.orders).where(eq(schema.orders.id, input.orderId))
 
   if (!order) throw new StoreError('Pedido não encontrado', 404)
+  if (order.status === 'canceled') {
+    // Pagou depois do prazo (pedido já cancelado e estoque devolvido): precisa de estorno manual.
+    console.warn('[pagamento] aprovado para pedido cancelado; avaliar estorno', order.id, input.paymentId)
+  }
   if (order.status !== 'awaiting_payment') return order
 
   if (Math.round(input.amountPaid * 100) < order.totalCents) {

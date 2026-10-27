@@ -47,6 +47,8 @@ export const tenants = pgTable('tenants', {
   acceptsCardOnDelivery: boolean('accepts_card_on_delivery').notNull().default(true),
   acceptsPixOnDelivery: boolean('accepts_pix_on_delivery').notNull().default(true),
   acceptsOnline: boolean('accepts_online').notNull().default(false),
+  // Opcional: com estoque ligado, pedidos descontam de products.stock_quantity.
+  stockControl: boolean('stock_control').notNull().default(false),
   // Tipo de loja: define os padrões de textos, cores e imagens (lib/segments.ts).
   segment: text('segment').$type<Segment>().notNull().default('outro'),
   // Só os campos que a loja personalizou; o resto vem do padrão do segmento.
@@ -134,6 +136,8 @@ export const products = pgTable(
     imageUrl: text('image_url').notNull(),
     offer: boolean('offer').notNull().default(false),
     active: boolean('active').notNull().default(true),
+    // null = sem limite (mesmo com o controle de estoque da loja ligado).
+    stockQuantity: integer('stock_quantity'),
     createdAt: createdAt()
   },
   table => [index('products_tenant_idx').on(table.tenantId)]
@@ -156,6 +160,8 @@ export const orders = pgTable(
     paymentMethod: paymentMethod('payment_method').notNull().default('online'),
     // Troco para (só pagamento em dinheiro).
     changeForCents: integer('change_for_cents'),
+    // O pedido descontou estoque; ao cancelar, as unidades voltam.
+    stockReserved: boolean('stock_reserved').notNull().default(false),
     paymentId: text('payment_id'),
     paymentStatus: text('payment_status'),
     createdAt: createdAt(),

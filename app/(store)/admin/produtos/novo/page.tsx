@@ -1,8 +1,8 @@
 import { ProductForm } from '@/components/product-form'
-import { getCategories } from '@/lib/store'
+import { getCategories, getStoreSettings } from '@/lib/store'
 
 export default async function NewProductPage() {
-  const categories = await getCategories()
+  const [categories, settings] = await Promise.all([getCategories(), getStoreSettings()])
 
   return (
     <>
@@ -10,7 +10,7 @@ export default async function NewProductPage() {
         <p className="eyebrow">Catálogo</p>
         <h1>Novo produto</h1>
       </div>
-      <ProductForm categories={categories} />
+      <ProductForm categories={categories} stockControl={settings.stockControl} />
     </>
   )
 }

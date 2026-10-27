@@ -11,11 +11,14 @@ import type { Category } from '@/lib/types'
 
 export function ProductForm({
   categories,
-  product
+  product,
+  stockControl
 }: {
   categories: Category[]
   // Com produto = edição; sem = cadastro.
   product?: AdminProduct
+  // Controle de estoque da loja ligado: mostra o campo de estoque.
+  stockControl: boolean
 }) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
@@ -91,6 +94,25 @@ export function ProductForm({
           type="number"
         />
       </label>
+      {stockControl && (
+        <label htmlFor="product-stock">
+          Estoque (unidades disponíveis)
+          <input
+            defaultValue={product?.stockQuantity ?? ''}
+            id="product-stock"
+            inputMode="numeric"
+            max="100000"
+            min="0"
+            name="stock"
+            placeholder="Vazio = sem limite"
+            step="1"
+            type="number"
+          />
+          <small className="settings-hint">
+            Cada pedido desconta deste número. Com 0 o produto aparece como esgotado.
+          </small>
+        </label>
+      )}
       <label htmlFor="product-category">
         Categoria
         <select defaultValue={product?.category_id ?? ''} id="product-category" name="category_id" required>

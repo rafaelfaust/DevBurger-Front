@@ -9,7 +9,9 @@ const schema = z.object({
   acceptsCash: z.boolean(),
   acceptsCardOnDelivery: z.boolean(),
   acceptsPixOnDelivery: z.boolean(),
-  acceptsOnline: z.boolean()
+  acceptsOnline: z.boolean(),
+  // Opcional: se não vier, mantém a configuração atual.
+  stockControl: z.boolean().optional()
 })
 
 export async function PUT(request: Request) {

@@ -30,6 +30,7 @@ export type StoreSettings = {
   acceptsOnline: boolean
   // Se a plataforma tem como processar pagamento online agora.
   onlineAvailable: boolean
+  stockControl: boolean
 }
 
 export function enabledPaymentMethods(settings: StoreSettings): PaymentMethod[] {
