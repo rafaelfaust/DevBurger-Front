@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { FormEvent, useState } from 'react'
 import { toast } from 'sonner'
 
+import { ProductOptionsEditor } from '@/components/product-options-editor'
 import type { AdminProduct } from '@/lib/store'
 import type { Category } from '@/lib/types'
 
@@ -22,6 +23,9 @@ export function ProductForm({
 }) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [hasSizes, setHasSizes] = useState(Boolean(product?.options?.sizes.length))
+  // Muda depois de cadastrar, para o editor de opções voltar vazio.
+  const [formKey, setFormKey] = useState(0)
   const editing = Boolean(product)
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -46,6 +50,8 @@ export function ProductForm({
       } else {
         toast.success('Produto cadastrado')
         formElement.reset()
+        setHasSizes(false)
+        setFormKey(current => current + 1)
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Falha ao salvar')
@@ -82,18 +88,22 @@ export function ProductForm({
           rows={3}
         />
       </label>
-      <label htmlFor="product-price">
-        Preço (R$)
-        <input
-          defaultValue={product?.price}
-          id="product-price"
-          min="0.01"
-          name="price"
-          required
-          step="0.01"
-          type="number"
-        />
-      </label>
+      {hasSizes ? (
+        <p className="settings-hint">O preço vem de cada tamanho, cadastrado mais abaixo.</p>
+      ) : (
+        <label htmlFor="product-price">
+          Preço (R$)
+          <input
+            defaultValue={product?.price}
+            id="product-price"
+            min="0.01"
+            name="price"
+            required
+            step="0.01"
+            type="number"
+          />
+        </label>
+      )}
       {stockControl && (
         <label htmlFor="product-stock">
           Estoque (unidades disponíveis)
@@ -140,6 +150,7 @@ export function ProductForm({
           type="file"
         />
       </label>
+      <ProductOptionsEditor initial={product?.options} key={formKey} onSizesChange={setHasSizes} />
       <label className="checkbox" htmlFor="product-offer">
         <input defaultChecked={product?.offer} id="product-offer" name="offer" type="checkbox" value="true" />
         Produto em oferta (aparece nos destaques da página inicial)

@@ -40,7 +40,11 @@ async function loadOrderContext(orderId: string) {
   if (!row) return null
 
   const items = await db
-    .select({ quantity: schema.orderItems.quantity, name: schema.orderItems.name })
+    .select({
+      quantity: schema.orderItems.quantity,
+      name: schema.orderItems.name,
+      details: schema.orderItems.details
+    })
     .from(schema.orderItems)
     .where(eq(schema.orderItems.orderId, orderId))
     .orderBy(asc(schema.orderItems.id))
@@ -51,7 +55,7 @@ async function loadOrderContext(orderId: string) {
 export function messageContext(
   order: typeof schema.orders.$inferSelect,
   tenant: Tenant,
-  items: Array<{ quantity: number; name: string }>
+  items: Array<{ quantity: number; name: string; details?: string | null }>
 ): MessageContext {
   return {
     customerName: order.customerName ?? 'cliente',
@@ -69,7 +73,7 @@ export function messageContext(
 export function orderMessage(
   order: typeof schema.orders.$inferSelect,
   tenant: Tenant,
-  items: Array<{ quantity: number; name: string }>
+  items: Array<{ quantity: number; name: string; details?: string | null }>
 ) {
   if (!isNotifiable(order.status)) return null
   const template = resolveTemplate(tenant.whatsappTemplates, order.status)

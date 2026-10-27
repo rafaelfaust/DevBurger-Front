@@ -1,5 +1,6 @@
 import { and, asc, count, desc, eq, gte, inArray, isNotNull, lt, sql } from 'drizzle-orm'
 import { after } from 'next/server'
+import { z } from 'zod'
 
 import { requireAdminSession } from '@/lib/auth'
 import { buildBranding, type BrandingOverrides } from '@/lib/branding'
@@ -18,6 +19,14 @@ import {
   type StoreSettings
 } from '@/lib/payment-methods'
 import { isOnlinePaymentAvailable } from '@/lib/payments'
+import {
+  LIMITS,
+  priceSelection,
+  SelectionError,
+  type HalfPricing,
+  type ItemSelection,
+  type ProductOptions
+} from '@/lib/product-options'
 import type { Segment } from '@/lib/segments'
 import { uploadImage } from '@/lib/storage'
 import { drainOutbox, notifyOrder, orderMessage } from '@/lib/whatsapp/notifications'
@@ -45,6 +54,7 @@ function toProduct(row: typeof schema.products.$inferSelect, stockControl = fals
     offer: row.offer,
     category_id: row.categoryId,
     description: row.description ?? undefined,
+    options: row.options,
     ...(limited && { stockLeft: Math.max(row.stockQuantity ?? 0, 0) })
   }
 }
@@ -58,7 +68,8 @@ function toSettings(tenant: Tenant): StoreSettings {
     acceptsOnline: tenant.acceptsOnline,
     onlineAvailable: isOnlinePaymentAvailable(),
     stockControl: tenant.stockControl,
-    pixKey: tenant.pixKey
+    pixKey: tenant.pixKey,
+    halfPricing: tenant.halfPricing
   }
 }
 
@@ -67,9 +78,10 @@ export async function getStoreSettings(): Promise<StoreSettings> {
 }
 
 export async function updateStoreSettings(
-  input: Omit<StoreSettings, 'onlineAvailable' | 'stockControl' | 'pixKey'> & {
+  input: Omit<StoreSettings, 'onlineAvailable' | 'stockControl' | 'pixKey' | 'halfPricing'> & {
     stockControl?: boolean
     pixKey?: string | null
+    halfPricing?: HalfPricing
   }
 ): Promise<StoreSettings> {
   await requireAdminSession()
@@ -79,7 +91,8 @@ export async function updateStoreSettings(
     ...input,
     onlineAvailable: isOnlinePaymentAvailable(),
     stockControl: input.stockControl ?? tenant.stockControl,
-    pixKey: input.pixKey ?? tenant.pixKey
+    pixKey: input.pixKey ?? tenant.pixKey,
+    halfPricing: input.halfPricing ?? tenant.halfPricing
   }
   if (!enabledPaymentMethods(candidate).length) {
     throw new StoreError('Ative pelo menos uma forma de pagamento', 400)
@@ -94,6 +107,7 @@ export async function updateStoreSettings(
       acceptsPixOnDelivery: input.acceptsPixOnDelivery,
       acceptsOnline: input.acceptsOnline,
       stockControl: input.stockControl,
+      halfPricing: input.halfPricing,
       // undefined mantém; '' apaga.
       ...(input.pixKey !== undefined && { pixKey: input.pixKey?.trim() || null })
     })
@@ -180,6 +194,12 @@ export async function getProducts(): Promise<Product[]> {
   return rows.map(row => toProduct(row, tenant.stockControl))
 }
 
+// Cardápio da loja com a regra de preço dos itens de vários sabores.
+export async function getMenu() {
+  const [products, tenant] = await Promise.all([getProducts(), getCurrentTenant()])
+  return { products, halfPricing: tenant.halfPricing }
+}
+
 export async function getCategories(): Promise<Category[]> {
   const tenant = await getCurrentTenant()
   return getDb()
@@ -246,11 +266,73 @@ export async function getAdminProduct(id: number): Promise<AdminProduct> {
   return product
 }
 
+const optionId = z.string().regex(/^[a-z0-9-]{1,40}$/i)
+const optionName = z.string().trim().min(1, 'Dê um nome a cada opção').max(LIMITS.name)
+const optionPrice = z.number().int().min(0).max(10_000_00)
+const optionItem = z.object({ id: optionId, name: optionName, priceCents: optionPrice })
+
+const optionsSchema = z
+  .object({
+    sizes: z
+      .array(optionItem.extend({ priceCents: optionPrice.min(1, 'Informe o preço de cada tamanho') }))
+      .max(LIMITS.sizes),
+    maxFlavors: z.number().int().min(1).max(LIMITS.flavors),
+    groups: z
+      .array(
+        z.object({
+          id: optionId,
+          name: optionName,
+          min: z.number().int().min(0).max(LIMITS.itemsPerGroup),
+          max: z.number().int().min(1).max(LIMITS.itemsPerGroup),
+          items: z
+            .array(optionItem)
+            .min(1, 'Cada grupo precisa de pelo menos uma opção')
+            .max(LIMITS.itemsPerGroup)
+        })
+      )
+      .max(LIMITS.groups)
+  })
+  .superRefine((options, context) => {
+    for (const group of options.groups) {
+      if (group.min > group.max || group.max > group.items.length) {
+        context.addIssue({
+          code: 'custom',
+          message: `Em ${group.name}: o mínimo não pode passar do máximo, nem o máximo do número de opções`
+        })
+      }
+    }
+    const ids = [...options.sizes, ...options.groups, ...options.groups.flatMap(group => group.items)].map(
+      item => item.id
+    )
+    if (new Set(ids).size !== ids.length) context.addIssue({ code: 'custom', message: 'Opções repetidas' })
+    const sizeNames = options.sizes.map(size => size.name.toLowerCase())
+    if (new Set(sizeNames).size !== sizeNames.length) {
+      context.addIssue({ code: 'custom', message: 'Há dois tamanhos com o mesmo nome' })
+    }
+  })
+
+// Campo só enviado pelo formulário novo; sem ele as opções atuais ficam como estão.
+function parseOptions(raw: FormDataEntryValue | null): ProductOptions | undefined {
+  if (raw === null) return undefined
+  try {
+    return optionsSchema.parse(JSON.parse(String(raw)))
+  } catch (error) {
+    throw new StoreError(
+      error instanceof z.ZodError ? (error.issues[0]?.message ?? 'Opções inválidas') : 'Opções inválidas',
+      400
+    )
+  }
+}
+
 // Campos do formulário de produto; a foto é obrigatória só ao cadastrar.
 async function parseProductForm(formData: FormData, tenantId: string, requireImage: boolean) {
   const name = String(formData.get('name') ?? '').trim()
   const description = String(formData.get('description') ?? '').trim()
-  const priceCents = Math.round(Number(String(formData.get('price') ?? '0').replace(',', '.')) * 100)
+  const options = parseOptions(formData.get('options'))
+  // Com tamanhos, o preço do card é o do menor tamanho ("a partir de").
+  const priceCents = options?.sizes.length
+    ? Math.min(...options.sizes.map(size => size.priceCents))
+    : Math.round(Number(String(formData.get('price') ?? '0').replace(',', '.')) * 100)
   const categoryId = Number(formData.get('category_id') ?? 0)
   const offer = formData.get('offer') === 'true'
   const file = formData.get('file')
@@ -284,6 +366,7 @@ async function parseProductForm(formData: FormData, tenantId: string, requireIma
       priceCents,
       categoryId,
       offer,
+      ...(options && { options }),
       ...(stockQuantity !== undefined && { stockQuantity })
     },
     file: hasImage ? (file as File) : null
@@ -487,7 +570,9 @@ export async function getOrders(): Promise<Order[]> {
         id: item.id,
         name: item.name,
         price: toReais(item.unitPriceCents),
-        quantity: item.quantity
+        quantity: item.quantity,
+        details: item.details,
+        note: item.note
       })),
     subtotal: toReais(order.subtotalCents),
     deliveryFee: toReais(order.deliveryFeeCents),
@@ -608,9 +693,11 @@ async function resolveCustomer(tenantId: string, contact: OrderContact, phone: s
   return existing.id
 }
 
+export type OrderItemInput = ItemSelection & { id: number; quantity: number }
+
 export async function createOrder(
   contact: OrderContact,
-  input: Array<{ id: number; quantity: number }>,
+  input: OrderItemInput[],
   payment: { method: PaymentMethod; changeFor?: number | null }
 ) {
   const tenant = await getCurrentTenant()
@@ -645,7 +732,8 @@ export async function createOrder(
     throw new StoreError('Esta forma de pagamento não está disponível nesta loja', 400)
   }
 
-  const ids = [...new Set(input.map(item => item.id))]
+  // Produtos do carrinho e os sabores extras escolhidos.
+  const ids = [...new Set(input.flatMap(item => [item.id, ...(item.flavors ?? [])]))]
   const catalog = await db
     .select()
     .from(schema.products)
@@ -657,20 +745,39 @@ export async function createOrder(
       )
     )
 
-  // Soma quantidades repetidas do mesmo produto.
-  const quantities = new Map<number, number>()
-  for (const item of input) quantities.set(item.id, (quantities.get(item.id) ?? 0) + item.quantity)
-
-  const lines = [...quantities].map(([id, quantity]) => {
-    const product = catalog.find(candidate => candidate.id === id)
+  // Cada linha tem suas escolhas; o preço sai sempre do cadastro, nunca do navegador.
+  const lines = input.map(item => {
+    const product = catalog.find(candidate => candidate.id === item.id)
     if (!product) {
       throw new StoreError(
         'Um item do seu carrinho não está mais disponível. Remova-o do carrinho e tente de novo.',
         409
       )
     }
-    return { product, quantity }
+    // Sabor extra: produto da mesma categoria que também aceita vários sabores.
+    const findFlavor = (id: number) =>
+      catalog.find(
+        candidate =>
+          candidate.id === id && candidate.categoryId === product.categoryId && candidate.options.maxFlavors > 1
+      )
+    try {
+      const priced = priceSelection(product, item, findFlavor, tenant.halfPricing)
+      return { product, quantity: item.quantity, ...priced }
+    } catch (error) {
+      if (error instanceof SelectionError) throw new StoreError(`${error.message}. Ajuste o item no carrinho.`, 409)
+      throw error
+    }
   })
+
+  // O estoque conta o produto principal, somando as linhas dele.
+  const quantities = new Map<number, number>()
+  for (const line of lines) {
+    quantities.set(line.product.id, (quantities.get(line.product.id) ?? 0) + line.quantity)
+  }
+  const stockLines = [...quantities].map(([id, quantity]) => ({
+    product: catalog.find(candidate => candidate.id === id)!,
+    quantity
+  }))
 
   const stockProblem = (product: (typeof catalog)[number]) =>
     new StoreError(
@@ -681,16 +788,13 @@ export async function createOrder(
     )
 
   const limited = tenant.stockControl
-    ? lines.filter(({ product }) => product.stockQuantity !== null)
+    ? stockLines.filter(({ product }) => product.stockQuantity !== null)
     : []
   for (const { product, quantity } of limited) {
     if (quantity > (product.stockQuantity ?? 0)) throw stockProblem(product)
   }
 
-  const subtotalCents = lines.reduce(
-    (sum, { product, quantity }) => sum + product.priceCents * quantity,
-    0
-  )
+  const subtotalCents = lines.reduce((sum, { unitCents, quantity }) => sum + unitCents * quantity, 0)
   const deliveryFeeCents = tenant.deliveryFeeCents
   const totalCents = subtotalCents + deliveryFeeCents
 
@@ -733,12 +837,14 @@ export async function createOrder(
       .returning()
 
     await tx.insert(schema.orderItems).values(
-      lines.map(({ product, quantity }) => ({
+      lines.map(({ product, quantity, unitCents, details, note }) => ({
         orderId: created.id,
         productId: product.id,
         name: product.name,
-        unitPriceCents: product.priceCents,
-        quantity
+        unitPriceCents: unitCents,
+        quantity,
+        details,
+        note
       }))
     )
 
@@ -750,7 +856,13 @@ export async function createOrder(
 
   return {
     order,
-    lines: lines.map(({ product, quantity }) => ({ product: toProduct(product), quantity })),
+    lines: lines.map(({ product, quantity, unitCents, details }) => ({
+      id: product.id,
+      name: details ? `${product.name} (${details})` : product.name,
+      url: product.imageUrl,
+      unitPrice: toReais(unitCents),
+      quantity
+    })),
     deliveryFee: toReais(deliveryFeeCents)
   }
 }

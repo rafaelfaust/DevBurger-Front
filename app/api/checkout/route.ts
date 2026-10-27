@@ -6,6 +6,7 @@ import { getSessionUser } from '@/lib/auth'
 import { getTenantBranding } from '@/lib/branding-server'
 import { paymentMethods } from '@/lib/payment-methods'
 import { demoCheckout } from '@/lib/payments'
+import { LIMITS } from '@/lib/product-options'
 import {
   cancelUnpaidOrder,
   confirmOrderPayment,
@@ -19,7 +20,12 @@ const schema = z.object({
     .array(
       z.object({
         id: z.number().int().positive(),
-        quantity: z.number().int().min(1).max(20)
+        quantity: z.number().int().min(1).max(20),
+        // Escolhas do item; o preço é recalculado no servidor.
+        size: z.string().max(40).optional(),
+        flavors: z.array(z.number().int().positive()).max(LIMITS.flavors).optional(),
+        options: z.array(z.string().max(40)).max(LIMITS.groups * LIMITS.itemsPerGroup).optional(),
+        note: z.string().max(LIMITS.note).optional()
       })
     )
     .min(1)
@@ -89,15 +95,13 @@ export async function POST(request: Request) {
     const result = await new Preference(client).create({
       body: {
         items: [
-          ...lines.map(({ product, quantity }) => ({
-            id: String(product.id),
-            title: product.name,
-            quantity,
+          ...lines.map(line => ({
+            id: String(line.id),
+            title: line.name.slice(0, 250),
+            quantity: line.quantity,
             currency_id: 'BRL',
-            unit_price: product.price,
-            picture_url: product.url.startsWith('http')
-              ? product.url
-              : `${appUrl}${product.url}`
+            unit_price: line.unitPrice,
+            picture_url: line.url.startsWith('http') ? line.url : `${appUrl}${line.url}`
           })),
           ...(deliveryFee > 0
             ? [

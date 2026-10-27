@@ -5,6 +5,7 @@ import { FormEvent, useState } from 'react'
 import { toast } from 'sonner'
 
 import type { StoreSettings } from '@/lib/payment-methods'
+import { halfPricingLabels, halfPricingRules } from '@/lib/product-options'
 
 const offlineOptions = [
   { name: 'acceptsCash', label: 'Dinheiro na entrega' },
@@ -32,7 +33,8 @@ export function SettingsForm({ settings }: { settings: StoreSettings }) {
           acceptsPixOnDelivery: form.has('acceptsPixOnDelivery'),
           acceptsOnline: form.has('acceptsOnline'),
           stockControl: form.has('stockControl'),
-          pixKey: String(form.get('pixKey') ?? '')
+          pixKey: String(form.get('pixKey') ?? ''),
+          halfPricing: form.get('halfPricing')
         })
       })
       const data = await response.json()
@@ -126,6 +128,31 @@ export function SettingsForm({ settings }: { settings: StoreSettings }) {
           pedidos descontam as unidades e o produto aparece como esgotado ao zerar.
           Pedido cancelado devolve as unidades. Desligado: nada é contado; para
           tirar um item do cardápio, use Pausar.
+        </p>
+      </fieldset>
+
+      <fieldset className="settings-group">
+        <legend>Itens com vários sabores (meio a meio)</legend>
+        {halfPricingRules.map(rule => (
+          <label className="checkbox" htmlFor={`halfPricing-${rule}`} key={rule}>
+            <input
+              defaultChecked={settings.halfPricing === rule}
+              id={`halfPricing-${rule}`}
+              name="halfPricing"
+              type="radio"
+              value={rule}
+            />
+            {halfPricingLabels[rule]}
+          </label>
+        ))}
+        <p className="settings-hint">
+          Exemplo: pizza grande meio Calabresa (R$ 50) e meio Camarão (R$ 70). Pelo sabor mais caro o
+          cliente paga R$ 70; pela média, R$ 60. Adicionais e borda são somados à parte.
+        </p>
+        <p className="settings-hint">
+          Para usar: em Produtos, edite cada sabor e escolha &quot;Até 2 sabores&quot; (ou mais) em
+          &quot;Sabores por item&quot;. Os sabores precisam estar na mesma categoria e ter tamanhos com o
+          mesmo nome (ex.: Média e Grande em todas as pizzas).
         </p>
       </fieldset>
 

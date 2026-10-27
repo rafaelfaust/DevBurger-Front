@@ -3,18 +3,20 @@
 import { useMemo, useState } from 'react'
 
 import { ProductCard } from '@/components/product-card'
-import type { Category, Product } from '@/lib/types'
+import type { Menu } from '@/components/product-dialog'
+import type { Category } from '@/lib/types'
 
 export function Catalog({
-  products,
+  menu,
   categories,
   initialCategory = 0
 }: {
-  products: Product[]
+  menu: Menu
   categories: Category[]
   initialCategory?: number
 }) {
   const [active, setActive] = useState(initialCategory)
+  const { products } = menu
   const filtered = useMemo(
     () =>
       active === 0
@@ -44,7 +46,7 @@ export function Catalog({
       </div>
       <div className="product-grid">
         {filtered.map(product => (
-          <ProductCard key={product.id} product={product} />
+          <ProductCard key={product.id} menu={menu} product={product} />
         ))}
       </div>
     </>

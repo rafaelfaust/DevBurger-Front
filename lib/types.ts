@@ -1,5 +1,6 @@
 import type { OrderStatus } from '@/lib/order-status'
 import type { PaymentMethod } from '@/lib/payment-methods'
+import type { ItemSelection, ProductOptions } from '@/lib/product-options'
 
 export type Category = {
   id: number
@@ -17,11 +18,24 @@ export type Product = {
   description?: string
   // Só existe com o controle de estoque da loja ligado e o produto com estoque definido.
   stockLeft?: number
+  // Tamanhos, sabores e adicionais (vazio = produto simples).
+  options?: ProductOptions
   category?: Category | string
 }
 
-export type CartItem = Product & {
+// Uma linha do carrinho: o mesmo produto com escolhas diferentes vira linhas separadas.
+export type CartItem = {
+  key: string
+  // id do produto
+  id: number
+  name: string
+  url: string
+  // Preço unitário já com tamanho, sabores e adicionais (o servidor recalcula).
+  price: number
   quantity: number
+  details?: string | null
+  selection?: ItemSelection
+  stockLeft?: number
 }
 
 export type UserRole = 'owner' | 'staff' | 'customer'
@@ -41,6 +55,8 @@ export type OrderItem = {
   name: string
   price: number
   quantity: number
+  details: string | null
+  note: string | null
 }
 
 export type Order = {

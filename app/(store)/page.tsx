@@ -3,14 +3,15 @@ import Image from 'next/image'
 import Link from 'next/link'
 
 import { ProductCard } from '@/components/product-card'
-import { getProducts } from '@/lib/store'
+import { getMenu } from '@/lib/store'
 import { getTenantBranding } from '@/lib/branding-server'
 
 export default async function HomePage() {
-  const [products, branding] = await Promise.all([
-    getProducts(),
+  const [menu, branding] = await Promise.all([
+    getMenu(),
     getTenantBranding()
   ])
+  const { products } = menu
   const offers = products.filter(product => product.offer).slice(0, 4)
   const highlights = offers.length ? offers : products.slice(0, 4)
 
@@ -82,7 +83,7 @@ export default async function HomePage() {
         </div>
         <div className="product-grid">
           {highlights.map(product => (
-            <ProductCard key={product.id} product={product} />
+            <ProductCard key={product.id} menu={menu} product={product} />
           ))}
         </div>
       </section>

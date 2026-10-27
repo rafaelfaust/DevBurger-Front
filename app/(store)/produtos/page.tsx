@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Image from 'next/image'
 
 import { Catalog } from '@/components/catalog'
-import { getCategories, getProducts } from '@/lib/store'
+import { getCategories, getMenu } from '@/lib/store'
 import { getTenantBranding } from '@/lib/branding-server'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -19,9 +19,9 @@ export default async function ProductsPage({
 }: {
   searchParams: Promise<{ categoria?: string }>
 }) {
-  const [{ categoria }, products, categories, branding] = await Promise.all([
+  const [{ categoria }, menu, categories, branding] = await Promise.all([
     searchParams,
-    getProducts(),
+    getMenu(),
     getCategories(),
     getTenantBranding()
   ])
@@ -46,7 +46,7 @@ export default async function ProductsPage({
         <Catalog
           categories={categories}
           initialCategory={Number(categoria) || 0}
-          products={products}
+          menu={menu}
         />
       </section>
     </main>

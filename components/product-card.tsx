@@ -2,27 +2,39 @@
 
 import { Plus } from 'lucide-react'
 import Image from 'next/image'
+import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { useCart } from '@/components/cart-context'
+import { ProductDialog, type Menu } from '@/components/product-dialog'
 import { formatCurrency } from '@/lib/format'
+import { hasChoices } from '@/lib/product-options'
 import type { Product } from '@/lib/types'
 
 // Abaixo disso o card avisa "Últimas unidades".
 const LOW_STOCK = 5
 
-export function ProductCard({ product }: { product: Product }) {
+export function ProductCard({ product, menu }: { product: Product; menu: Menu }) {
   const { add, items } = useCart()
+  const [open, setOpen] = useState(false)
   // stockLeft só existe quando a loja controla estoque deste produto.
   const soldOut = product.stockLeft === 0
-  const inCart = items.find(item => item.id === product.id)?.quantity ?? 0
+  const inCart = items
+    .filter(item => item.id === product.id)
+    .reduce((total, item) => total + item.quantity, 0)
+  const choices = hasChoices(product.options)
 
-  function addToCart() {
+  function quickAdd() {
+    // Produto com tamanho, sabores ou adicionais abre a janela de escolha.
+    if (choices) {
+      setOpen(true)
+      return
+    }
     if (product.stockLeft !== undefined && inCart >= product.stockLeft) {
       toast.error(`Só restam ${product.stockLeft} unidade(s) de ${product.name}`)
       return
     }
-    add(product)
+    add({ id: product.id, name: product.name, url: product.url, price: product.price, stockLeft: product.stockLeft })
     toast.success(`${product.name} adicionado ao carrinho`)
   }
 
@@ -40,6 +52,15 @@ export function ProductCard({ product }: { product: Product }) {
         ) : (
           product.offer && <span className="offer-badge">Oferta</span>
         )}
+        {!soldOut && (
+          // Abre os detalhes (e o campo de observação) mesmo em produto simples.
+          <button
+            aria-label={`Ver ${product.name}`}
+            className="product-open"
+            onClick={() => setOpen(true)}
+            type="button"
+          />
+        )}
       </div>
       <div className="product-content">
         <div>
@@ -52,17 +73,23 @@ export function ProductCard({ product }: { product: Product }) {
           )}
         </div>
         <div className="product-footer">
-          <strong>{formatCurrency(product.price)}</strong>
+          <strong>
+            {product.options?.sizes.length ? <small>a partir de </small> : null}
+            {formatCurrency(product.price)}
+          </strong>
           <button
             aria-label={soldOut ? `${product.name} esgotado` : `Adicionar ${product.name}`}
             className="add-button"
             disabled={soldOut}
-            onClick={addToCart}
+            onClick={quickAdd}
           >
             <Plus />
           </button>
         </div>
       </div>
+      {open && (
+        <ProductDialog inCart={inCart} menu={menu} onClose={() => setOpen(false)} product={product} />
+      )}
     </article>
   )
 }

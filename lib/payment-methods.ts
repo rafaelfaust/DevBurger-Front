@@ -1,3 +1,5 @@
+import type { HalfPricing } from '@/lib/product-options'
+
 export const paymentMethods = [
   'online',
   'cash',
@@ -33,6 +35,8 @@ export type StoreSettings = {
   stockControl: boolean
   // Chave PIX para quem recebe PIX direto (sem Mercado Pago).
   pixKey: string | null
+  // Como cobrar itens com vários sabores (meio a meio).
+  halfPricing: HalfPricing
 }
 
 export function enabledPaymentMethods(settings: StoreSettings): PaymentMethod[] {

@@ -63,6 +63,8 @@ export default async function OrdersPage() {
                 <li key={product.id}>
                   <span>
                     {product.quantity}× {product.name}
+                    {product.details && <small className="order-item-details">{product.details}</small>}
+                    {product.note && <small className="order-item-note">Obs.: {product.note}</small>}
                   </span>
                   <strong>
                     {formatCurrency(product.price * product.quantity)}

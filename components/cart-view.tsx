@@ -80,18 +80,20 @@ export function CartView({
     <div className="cart-layout">
       <div className="cart-items">
         {items.map(item => (
-          <article className="cart-item" key={item.id}>
+          <article className="cart-item" key={item.key}>
             <Image alt={item.name} height={100} src={item.url} width={120} />
             <div className="cart-item-info">
               <h3>{item.name}</h3>
+              {item.details && <p className="cart-item-details">{item.details}</p>}
+              {item.selection?.note && <p className="cart-item-details">Obs.: {item.selection.note}</p>}
               <p>{formatCurrency(item.price)}</p>
             </div>
             <div className="quantity">
-              <button onClick={() => decrease(item.id)}>
+              <button onClick={() => decrease(item.key)}>
                 <Minus size={16} />
               </button>
               <span>{item.quantity}</span>
-              <button onClick={() => increase(item.id)}>
+              <button onClick={() => increase(item.key)}>
                 <Plus size={16} />
               </button>
             </div>
@@ -99,7 +101,7 @@ export function CartView({
             <button
               aria-label={`Remover ${item.name}`}
               className="remove-button"
-              onClick={() => remove(item.id)}
+              onClick={() => remove(item.key)}
             >
               <Trash2 size={19} />
             </button>

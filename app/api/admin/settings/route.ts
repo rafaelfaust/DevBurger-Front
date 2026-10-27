@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 
 import { AuthError } from '@/lib/auth'
+import { halfPricingRules } from '@/lib/product-options'
 import { StoreError, updateStoreSettings } from '@/lib/store'
 
 const schema = z.object({
@@ -12,7 +13,8 @@ const schema = z.object({
   acceptsOnline: z.boolean(),
   // Opcional: se não vier, mantém a configuração atual.
   stockControl: z.boolean().optional(),
-  pixKey: z.string().max(140).optional()
+  pixKey: z.string().max(140).optional(),
+  halfPricing: z.enum(halfPricingRules).optional()
 })
 
 export async function PUT(request: Request) {

@@ -40,7 +40,7 @@ export function CheckoutButton({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          items: items.map(item => ({ id: item.id, quantity: item.quantity })),
+          items: items.map(item => ({ ...item.selection, id: item.id, quantity: item.quantity })),
           paymentMethod,
           changeFor,
           customer

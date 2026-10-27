@@ -14,6 +14,7 @@ import {
 
 import type { BrandingOverrides } from '@/lib/branding'
 import type { OpeningHours, StatusOverride } from '@/lib/opening-hours'
+import type { HalfPricing, ProductOptions } from '@/lib/product-options'
 import type { Segment } from '@/lib/segments'
 import type { WhatsAppTemplates } from '@/lib/whatsapp/templates'
 
@@ -53,6 +54,8 @@ export const tenants = pgTable('tenants', {
   stockControl: boolean('stock_control').notNull().default(false),
   // Chave PIX da loja, para quem recebe PIX direto (campo {chave_pix} nas mensagens).
   pixKey: text('pix_key'),
+  // Item com vários sabores (meio a meio): cobra o sabor mais caro ou a média.
+  halfPricing: text('half_pricing').$type<HalfPricing>().notNull().default('highest'),
   // Textos dos avisos de WhatsApp personalizados pela loja (vazio = texto padrão).
   whatsappTemplates: jsonb('whatsapp_templates').$type<WhatsAppTemplates>().notNull().default({}),
   // Tipo de loja: define os padrões de textos, cores e imagens (lib/segments.ts).
@@ -150,6 +153,11 @@ export const products = pgTable(
     active: boolean('active').notNull().default(true),
     // null = sem limite (mesmo com o controle de estoque da loja ligado).
     stockQuantity: integer('stock_quantity'),
+    // Tamanhos, sabores e adicionais (lib/product-options.ts).
+    options: jsonb('options')
+      .$type<ProductOptions>()
+      .notNull()
+      .default({ sizes: [], maxFlavors: 1, groups: [] }),
     createdAt: createdAt()
   },
   table => [index('products_tenant_idx').on(table.tenantId)]
@@ -200,7 +208,11 @@ export const orderItems = pgTable(
     }),
     name: text('name').notNull(),
     unitPriceCents: integer('unit_price_cents').notNull(),
-    quantity: integer('quantity').notNull()
+    quantity: integer('quantity').notNull(),
+    // Tamanho, sabores e adicionais escolhidos ("Grande · 1/2 Calabresa, 1/2 Frango").
+    details: text('details'),
+    // Observação do cliente ("sem cebola").
+    note: text('note')
   },
   table => [index('order_items_order_idx').on(table.orderId)]
 )

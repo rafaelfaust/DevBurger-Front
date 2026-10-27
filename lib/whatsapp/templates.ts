@@ -86,7 +86,7 @@ export type MessageContext = {
   customerName: string
   orderNumber: string
   storeName: string
-  items: Array<{ quantity: number; name: string }>
+  items: Array<{ quantity: number; name: string; details?: string | null }>
   total: string
   paymentMethod: string
   changeFor: string | null
@@ -99,7 +99,9 @@ export function renderMessage(text: string, context: MessageContext) {
     '{cliente}': context.customerName.split(/\s+/)[0] ?? context.customerName,
     '{pedido}': `#${context.orderNumber}`,
     '{loja}': context.storeName,
-    '{itens}': context.items.map(item => `${item.quantity}x ${item.name}`).join('\n'),
+    '{itens}': context.items
+      .map(item => `${item.quantity}x ${item.name}${item.details ? ` (${item.details})` : ''}`)
+      .join('\n'),
     '{total}': context.total,
     '{forma_pagamento}': context.paymentMethod,
     '{troco}': context.changeFor ?? '',
