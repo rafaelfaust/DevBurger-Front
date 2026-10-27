@@ -31,6 +31,8 @@ export type StoreSettings = {
   // Se a plataforma tem como processar pagamento online agora.
   onlineAvailable: boolean
   stockControl: boolean
+  // Chave PIX para quem recebe PIX direto (sem Mercado Pago).
+  pixKey: string | null
 }
 
 export function enabledPaymentMethods(settings: StoreSettings): PaymentMethod[] {

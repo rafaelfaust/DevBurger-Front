@@ -11,7 +11,8 @@ const schema = z.object({
   acceptsPixOnDelivery: z.boolean(),
   acceptsOnline: z.boolean(),
   // Opcional: se não vier, mantém a configuração atual.
-  stockControl: z.boolean().optional()
+  stockControl: z.boolean().optional(),
+  pixKey: z.string().max(140).optional()
 })
 
 export async function PUT(request: Request) {

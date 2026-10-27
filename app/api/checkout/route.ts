@@ -34,6 +34,9 @@ const schema = z.object({
   }, { error: 'Informe seu nome e celular' })
 })
 
+// Avisos de WhatsApp saem em segundo plano (after) depois da resposta.
+export const maxDuration = 300
+
 export async function POST(request: Request) {
   try {
     const branding = await getTenantBranding()

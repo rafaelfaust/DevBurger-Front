@@ -55,4 +55,6 @@ export type Order = {
   total: number
   paymentMethod: PaymentMethod
   changeFor: number | null
+  // Mensagem da etapa atual (botão manual "Avisar no WhatsApp"); null se a etapa não avisa.
+  whatsappText: string | null
 }

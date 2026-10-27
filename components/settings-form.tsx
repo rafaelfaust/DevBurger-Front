@@ -31,7 +31,8 @@ export function SettingsForm({ settings }: { settings: StoreSettings }) {
           acceptsCardOnDelivery: form.has('acceptsCardOnDelivery'),
           acceptsPixOnDelivery: form.has('acceptsPixOnDelivery'),
           acceptsOnline: form.has('acceptsOnline'),
-          stockControl: form.has('stockControl')
+          stockControl: form.has('stockControl'),
+          pixKey: String(form.get('pixKey') ?? '')
         })
       })
       const data = await response.json()
@@ -73,6 +74,20 @@ export function SettingsForm({ settings }: { settings: StoreSettings }) {
             {option.label}
           </label>
         ))}
+        <label htmlFor="pixKey">
+          Chave PIX da loja (opcional)
+          <input
+            defaultValue={settings.pixKey ?? ''}
+            id="pixKey"
+            maxLength={140}
+            name="pixKey"
+            placeholder="CNPJ, e-mail, celular ou chave aleatória"
+          />
+          <small className="settings-hint">
+            Para quem recebe PIX direto, sem Mercado Pago. Use o campo {'{chave_pix}'} nas
+            mensagens de WhatsApp para enviar a chave ao cliente.
+          </small>
+        </label>
       </fieldset>
 
       <fieldset className="settings-group">

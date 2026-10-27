@@ -21,14 +21,27 @@ export default async function OrdersPage() {
                 <strong>#{order.id.slice(-8)}</strong>
                 <span>{order.customer.name}</span>
                 {order.customer.phone && (
-                  <a
-                    className="customer-phone"
-                    href={whatsappLink(order.customer.phone)}
-                    rel="noreferrer"
-                    target="_blank"
-                  >
-                    {formatBrPhone(order.customer.phone)} · abrir WhatsApp
-                  </a>
+                  <span className="customer-contact">
+                    <a
+                      className="customer-phone"
+                      href={whatsappLink(order.customer.phone)}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      {formatBrPhone(order.customer.phone)}
+                    </a>
+                    {order.whatsappText && (
+                      // Plano B: abre a conversa com a mensagem da etapa atual pronta.
+                      <a
+                        className="text-button"
+                        href={whatsappLink(order.customer.phone, order.whatsappText)}
+                        rel="noreferrer"
+                        target="_blank"
+                      >
+                        Avisar no WhatsApp
+                      </a>
+                    )}
+                  </span>
                 )}
                 <small>{formatDate(order.createdAt)}</small>
                 <small>

@@ -1,4 +1,5 @@
 import { and, asc, count, desc, eq, gte, inArray, isNotNull, lt, sql } from 'drizzle-orm'
+import { after } from 'next/server'
 
 import { requireAdminSession } from '@/lib/auth'
 import { buildBranding, type BrandingOverrides } from '@/lib/branding'
@@ -19,6 +20,7 @@ import {
 import { isOnlinePaymentAvailable } from '@/lib/payments'
 import type { Segment } from '@/lib/segments'
 import { uploadImage } from '@/lib/storage'
+import { drainOutbox, notifyOrder, orderMessage } from '@/lib/whatsapp/notifications'
 import { getCurrentTenant, StoreError, type Tenant } from '@/lib/tenant'
 import type { Category, Order, Product, User } from '@/lib/types'
 
@@ -55,7 +57,8 @@ function toSettings(tenant: Tenant): StoreSettings {
     acceptsPixOnDelivery: tenant.acceptsPixOnDelivery,
     acceptsOnline: tenant.acceptsOnline,
     onlineAvailable: isOnlinePaymentAvailable(),
-    stockControl: tenant.stockControl
+    stockControl: tenant.stockControl,
+    pixKey: tenant.pixKey
   }
 }
 
@@ -64,7 +67,10 @@ export async function getStoreSettings(): Promise<StoreSettings> {
 }
 
 export async function updateStoreSettings(
-  input: Omit<StoreSettings, 'onlineAvailable' | 'stockControl'> & { stockControl?: boolean }
+  input: Omit<StoreSettings, 'onlineAvailable' | 'stockControl' | 'pixKey'> & {
+    stockControl?: boolean
+    pixKey?: string | null
+  }
 ): Promise<StoreSettings> {
   await requireAdminSession()
   const tenant = await getCurrentTenant()
@@ -72,7 +78,8 @@ export async function updateStoreSettings(
   const candidate = {
     ...input,
     onlineAvailable: isOnlinePaymentAvailable(),
-    stockControl: input.stockControl ?? tenant.stockControl
+    stockControl: input.stockControl ?? tenant.stockControl,
+    pixKey: input.pixKey ?? tenant.pixKey
   }
   if (!enabledPaymentMethods(candidate).length) {
     throw new StoreError('Ative pelo menos uma forma de pagamento', 400)
@@ -86,7 +93,9 @@ export async function updateStoreSettings(
       acceptsCardOnDelivery: input.acceptsCardOnDelivery,
       acceptsPixOnDelivery: input.acceptsPixOnDelivery,
       acceptsOnline: input.acceptsOnline,
-      stockControl: input.stockControl
+      stockControl: input.stockControl,
+      // undefined mantém; '' apaga.
+      ...(input.pixKey !== undefined && { pixKey: input.pixKey?.trim() || null })
     })
     .where(eq(schema.tenants.id, tenant.id))
     .returning()
@@ -443,6 +452,8 @@ export async function getOrders(): Promise<Order[]> {
   const db = getDb()
   // Pedidos online abandonados saem da fila (e devolvem estoque) antes de listar.
   await releaseExpiredReservations(tenant.id)
+  // Avisos de WhatsApp que ficaram na fila saem agora, em segundo plano.
+  after(() => drainOutbox(tenant.id))
 
   const rows = await db
     .select({ order: schema.orders, customer: schema.users })
@@ -482,7 +493,13 @@ export async function getOrders(): Promise<Order[]> {
     deliveryFee: toReais(order.deliveryFeeCents),
     total: toReais(order.totalCents),
     paymentMethod: order.paymentMethod,
-    changeFor: order.changeForCents === null ? null : toReais(order.changeForCents)
+    changeFor: order.changeForCents === null ? null : toReais(order.changeForCents),
+    // Mensagem da etapa atual, para o botão manual "Avisar no WhatsApp".
+    whatsappText: orderMessage(
+      order,
+      tenant,
+      items.filter(item => item.orderId === order.id)
+    )
   }))
 }
 
@@ -728,6 +745,9 @@ export async function createOrder(
     return created
   })
 
+  // Pagamento na entrega já nasce confirmado; o online avisa quando o pagamento aprovar.
+  if (order.status === 'confirmed') await notifyOrder(order.id, 'confirmed')
+
   return {
     order,
     lines: lines.map(({ product, quantity }) => ({ product: toProduct(product), quantity })),
@@ -763,6 +783,7 @@ export async function updateOrderStatus(id: string, status: OrderStatus) {
         )[0]
 
   if (!updated) throw new StoreError('O pedido mudou enquanto você editava', 409)
+  await notifyOrder(id, status)
   return updated
 }
 
@@ -806,5 +827,6 @@ export async function confirmOrderPayment(input: {
     .where(and(eq(schema.orders.id, order.id), eq(schema.orders.status, 'awaiting_payment')))
     .returning()
 
+  if (updated) await notifyOrder(updated.id, 'confirmed')
   return updated ?? order
 }

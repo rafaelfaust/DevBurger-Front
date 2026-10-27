@@ -1,4 +1,4 @@
-import { ClipboardList, Clock, Palette, PlusCircle, Settings, Tags, Utensils } from 'lucide-react'
+import { ClipboardList, Clock, MessageCircle, Palette, PlusCircle, Settings, Tags, Utensils } from 'lucide-react'
 import Link from 'next/link'
 
 export function AdminNav() {
@@ -19,6 +19,9 @@ export function AdminNav() {
       </Link>
       <Link href="/admin/configuracoes">
         <Settings size={19} /> Configurações
+      </Link>
+      <Link href="/admin/whatsapp">
+        <MessageCircle size={19} /> WhatsApp
       </Link>
       <Link href="/admin/horarios">
         <Clock size={19} /> Horários

@@ -13,6 +13,9 @@ type Notification = {
   data?: { id?: string }
 }
 
+// Avisos de WhatsApp saem em segundo plano (after) depois da resposta.
+export const maxDuration = 300
+
 export async function POST(request: Request) {
   const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN
   const secret = process.env.MERCADO_PAGO_WEBHOOK_SECRET

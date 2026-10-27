@@ -5,6 +5,7 @@ import {
   jsonb,
   pgEnum,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -14,6 +15,7 @@ import {
 import type { BrandingOverrides } from '@/lib/branding'
 import type { OpeningHours, StatusOverride } from '@/lib/opening-hours'
 import type { Segment } from '@/lib/segments'
+import type { WhatsAppTemplates } from '@/lib/whatsapp/templates'
 
 export const userRole = pgEnum('user_role', ['owner', 'staff', 'customer'])
 
@@ -49,6 +51,10 @@ export const tenants = pgTable('tenants', {
   acceptsOnline: boolean('accepts_online').notNull().default(false),
   // Opcional: com estoque ligado, pedidos descontam de products.stock_quantity.
   stockControl: boolean('stock_control').notNull().default(false),
+  // Chave PIX da loja, para quem recebe PIX direto (campo {chave_pix} nas mensagens).
+  pixKey: text('pix_key'),
+  // Textos dos avisos de WhatsApp personalizados pela loja (vazio = texto padrão).
+  whatsappTemplates: jsonb('whatsapp_templates').$type<WhatsAppTemplates>().notNull().default({}),
   // Tipo de loja: define os padrões de textos, cores e imagens (lib/segments.ts).
   segment: text('segment').$type<Segment>().notNull().default('outro'),
   // Só os campos que a loja personalizou; o resto vem do padrão do segmento.
@@ -219,4 +225,52 @@ export const platformSessions = pgTable(
     createdAt: createdAt()
   },
   table => [index('platform_sessions_admin_idx').on(table.adminId)]
+)
+
+// ---------- WhatsApp da loja (conexão por QR code) ----------
+
+// Sessão do WhatsApp (formato do Baileys), cifrada com AES-256-GCM.
+export const whatsappAuthKeys = pgTable(
+  'whatsapp_auth_keys',
+  {
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'cascade' }),
+    key: text('key').notNull(),
+    value: text('value').notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+  },
+  table => [primaryKey({ columns: [table.tenantId, table.key] })]
+)
+
+// Situação da conexão e trava (uma conexão por vez por loja).
+export const whatsappConnections = pgTable('whatsapp_connections', {
+  tenantId: uuid('tenant_id')
+    .primaryKey()
+    .references(() => tenants.id, { onDelete: 'cascade' }),
+  status: text('status').$type<'connecting' | 'qr' | 'connected' | 'disconnected'>().notNull().default('disconnected'),
+  qr: text('qr'),
+  phone: text('phone'),
+  lockedUntil: timestamp('locked_until', { withTimezone: true }),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+})
+
+// Fila de mensagens: mudar o status do pedido só enfileira; uma conexão envia as pendentes.
+export const whatsappOutbox = pgTable(
+  'whatsapp_outbox',
+  {
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'cascade' }),
+    orderId: uuid('order_id').references(() => orders.id, { onDelete: 'set null' }),
+    phone: text('phone').notNull(),
+    body: text('body').notNull(),
+    status: text('status').$type<'pending' | 'sent' | 'failed'>().notNull().default('pending'),
+    attempts: integer('attempts').notNull().default(0),
+    error: text('error'),
+    createdAt: createdAt(),
+    sentAt: timestamp('sent_at', { withTimezone: true })
+  },
+  table => [index('whatsapp_outbox_pending_idx').on(table.tenantId, table.status, table.id)]
 )

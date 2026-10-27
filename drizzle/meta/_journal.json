@@ -57,6 +57,13 @@
       "when": 1793106037419,
       "tag": "0007_guest_checkout",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793108396879,
+      "tag": "0008_whatsapp",
+      "breakpoints": true
     }
   ]
 }
