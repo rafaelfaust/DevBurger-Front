@@ -35,7 +35,7 @@ const schema = z.object({
 })
 
 // Avisos de WhatsApp saem em segundo plano (after) depois da resposta.
-export const maxDuration = 300
+export const maxDuration = 60
 
 export async function POST(request: Request) {
   try {

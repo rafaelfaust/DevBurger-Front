@@ -34,9 +34,13 @@ export class WhatsAppError extends Error {
   }
 }
 
-// Tempo para ler o QR code (o pareamento roda em segundo plano, dentro do maxDuration)
-export const PAIRING_TIMEOUT_MS = 240_000
-const CONNECT_TIMEOUT_MS = 30_000
+// Tudo cabe numa função de 60 s (limite do plano Hobby da Vercel).
+// Tempo para ler o QR code (o pareamento roda em segundo plano, dentro do maxDuration);
+// se expirar, a loja clica em conectar de novo.
+export const PAIRING_TIMEOUT_MS = 40_000
+// Espera a sincronização inicial depois de parear, antes de fechar
+const PAIRING_SYNC_MS = 8000
+const CONNECT_TIMEOUT_MS = 20_000
 const ACK_TIMEOUT_MS = 10_000
 // Intervalo entre mensagens do mesmo número, para não parecer disparo em massa
 const MIN_DELAY_MS = 3000
@@ -100,7 +104,7 @@ export const getWhatsAppSession = async (tenantId: string): Promise<WhatsAppSess
       status: connections.status,
       qr: connections.qr,
       phone: connections.phone,
-      stale: sql<boolean>`${connections.updatedAt} < now() - interval '6 minutes'`
+      stale: sql<boolean>`${connections.updatedAt} < now() - interval '2 minutes'`
     })
     .from(connections)
     .where(eq(connections.tenantId, tenantId))
@@ -216,7 +220,7 @@ export const runPairing = async (tenantId: string) => {
         })
         await setConnection(tenantId, { status: 'connected', qr: null, phone: phoneFromSocket(connection.sock) })
         // Deixa a sincronização inicial terminar antes de fechar
-        await sleep(10_000)
+        await sleep(PAIRING_SYNC_MS)
         await closeSocket(connection)
         return
       } catch (error) {
@@ -237,7 +241,7 @@ export const runPairing = async (tenantId: string) => {
 
 // Desconecta o aparelho no celular e apaga a sessão
 export const stopWhatsAppSession = async (tenantId: string): Promise<WhatsAppSession> => {
-  await waitForLock(tenantId, 60_000, 30_000)
+  await waitForLock(tenantId, 60_000, 20_000)
   try {
     if (await hasSavedSession(tenantId)) {
       const connection = await connectOnce(tenantId, { timeoutMs: CONNECT_TIMEOUT_MS }).catch(() => null)
@@ -276,7 +280,7 @@ export type SendWhatsApp = (phone: string, text: string) => Promise<void>
 export const withWhatsApp = async <T>(
   tenantId: string,
   run: (send: SendWhatsApp) => Promise<T>,
-  { leaseMs = 120_000, waitMs = 60_000 }: { leaseMs?: number; waitMs?: number } = {}
+  { leaseMs = 60_000, waitMs = 15_000 }: { leaseMs?: number; waitMs?: number } = {}
 ) => {
   const session = await getWhatsAppSession(tenantId)
   if (session.status !== 'connected' || !(await hasSavedSession(tenantId))) {

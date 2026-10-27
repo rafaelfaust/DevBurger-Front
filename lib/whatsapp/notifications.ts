@@ -20,8 +20,10 @@ import {
 // Aviso velho não vale mais a pena ("saiu para entrega" horas depois confunde o cliente).
 const STALE_MINUTES = 30
 const MAX_ATTEMPTS = 3
-// Cabe com folga no tempo máximo de uma função; o que sobrar sai no próximo envio.
-const DRAIN_LEASE_MS = 200_000
+// A função tem 60 s: só começa um envio novo nos primeiros 30 s (cada envio leva até ~16 s).
+// O que sobrar sai no próximo envio.
+const DRAIN_LEASE_MS = 60_000
+const SEND_BUDGET_MS = 30_000
 
 const isNotifiable = (status: OrderStatus): status is NotifiableStatus =>
   (notifiableStatuses as readonly string[]).includes(status)
@@ -127,7 +129,8 @@ export async function drainOutbox(tenantId: string) {
     await withWhatsApp(
       tenantId,
       async send => {
-        while (Date.now() - startedAt < DRAIN_LEASE_MS - 30_000) {
+        const hasTime = () => Date.now() - startedAt < SEND_BUDGET_MS
+        while (hasTime()) {
           const batch = await db
             .select()
             .from(outbox)
@@ -137,6 +140,7 @@ export async function drainOutbox(tenantId: string) {
           if (!batch.length) return
 
           for (const message of batch) {
+            if (!hasTime()) return
             try {
               await send(message.phone, message.body)
               await db

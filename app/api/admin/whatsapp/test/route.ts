@@ -8,7 +8,7 @@ import { normalizeBrMobile } from '@/lib/phone'
 import { getCurrentTenant, StoreError } from '@/lib/tenant'
 import { isWhatsAppConfigured, withWhatsApp, WhatsAppError } from '@/lib/whatsapp'
 
-export const maxDuration = 120
+export const maxDuration = 60
 
 export async function POST(request: Request) {
   try {

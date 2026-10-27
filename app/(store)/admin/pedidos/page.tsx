@@ -4,6 +4,9 @@ import { paymentMethodShortLabels } from '@/lib/payment-methods'
 import { formatBrPhone, whatsappLink } from '@/lib/phone'
 import { getOrders } from '@/lib/store'
 
+// Abrir a lista também envia os avisos de WhatsApp pendentes em segundo plano.
+export const maxDuration = 60
+
 export default async function OrdersPage() {
   const orders = await getOrders()
 

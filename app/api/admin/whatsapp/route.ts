@@ -13,7 +13,7 @@ import {
 } from '@/lib/whatsapp'
 
 // O pareamento roda em segundo plano (after) enquanto o QR code fica na tela.
-export const maxDuration = 300
+export const maxDuration = 60
 
 async function tenantId() {
   await requireAdminSession()
