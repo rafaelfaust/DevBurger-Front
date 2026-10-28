@@ -2283,3 +2283,126 @@ footer {
     animation: none;
   }
 }
+
+/* Comanda para impressora térmica */
+.receipt-page {
+  background: #fff;
+  color: #000;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 12px;
+  line-height: 1.35;
+  margin: 0 auto;
+  padding: 2mm;
+}
+
+.receipt-80 {
+  width: 72mm;
+}
+
+.receipt-58 {
+  font-size: 11px;
+  width: 48mm;
+}
+
+.receipt + .receipt {
+  break-before: page;
+  margin-top: 8mm;
+}
+
+.receipt header,
+.receipt section,
+.receipt li {
+  display: flex;
+  flex-direction: column;
+}
+
+.receipt header {
+  align-items: center;
+  text-align: center;
+}
+
+.receipt section,
+.receipt-items {
+  border-top: 1px dashed #000;
+  margin-top: 6px;
+  padding-top: 6px;
+}
+
+.receipt-items {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  margin-bottom: 0;
+  padding-left: 0;
+}
+
+.receipt-brand {
+  font-size: 1.3em;
+  text-transform: uppercase;
+}
+
+.receipt-number,
+.receipt-copy {
+  font-size: 1.15em;
+  font-weight: 700;
+}
+
+.receipt-copy {
+  display: block;
+  text-align: center;
+}
+
+.receipt-row {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.receipt-row > :last-child {
+  flex-shrink: 0;
+}
+
+.receipt-details {
+  padding-left: 2ch;
+}
+
+.receipt-note {
+  padding-left: 2ch;
+  text-transform: uppercase;
+}
+
+.receipt-total {
+  font-size: 1.2em;
+  margin-top: 4px;
+}
+
+/* Preferências de impressão (tela de pedidos) */
+.print-settings {
+  align-items: center;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  margin-top: 16px;
+  padding-top: 14px;
+}
+
+.print-settings label {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+}
+
+.print-settings small {
+  color: var(--muted);
+  flex-basis: 100%;
+}
+
+.order-card-head > .order-card-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  flex-direction: row;
+  justify-content: flex-end;
+}

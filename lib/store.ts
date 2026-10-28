@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, gte, inArray, isNotNull, lt, sql } from 'drizzle-orm'
+import { and, asc, count, desc, eq, gte, inArray, isNotNull, lt, sql, type SQL } from 'drizzle-orm'
 import { after } from 'next/server'
 import { z } from 'zod'
 
@@ -532,19 +532,36 @@ export async function deleteCategory(id: number) {
 export async function getOrders(): Promise<Order[]> {
   await requireAdminSession()
   const tenant = await getCurrentTenant()
-  const db = getDb()
   // Pedidos online abandonados saem da fila (e devolvem estoque) antes de listar.
   await releaseExpiredReservations(tenant.id)
   // Avisos de WhatsApp que ficaram na fila saem agora, em segundo plano.
   after(() => drainOutbox(tenant.id))
 
+  return loadOrders(tenant, eq(schema.orders.tenantId, tenant.id), 100)
+}
+
+// Um pedido da loja atual (impressão). null se não existir ou for de outra loja.
+export async function getOrder(id: string): Promise<Order | null> {
+  await requireAdminSession()
+  if (!uuidPattern.test(id)) return null
+  const tenant = await getCurrentTenant()
+  const [order] = await loadOrders(
+    tenant,
+    and(eq(schema.orders.tenantId, tenant.id), eq(schema.orders.id, id)),
+    1
+  )
+  return order ?? null
+}
+
+async function loadOrders(tenant: Tenant, where: SQL | undefined, limit: number): Promise<Order[]> {
+  const db = getDb()
   const rows = await db
     .select({ order: schema.orders, customer: schema.users })
     .from(schema.orders)
     .innerJoin(schema.users, eq(schema.users.id, schema.orders.customerId))
-    .where(eq(schema.orders.tenantId, tenant.id))
+    .where(where)
     .orderBy(desc(schema.orders.createdAt))
-    .limit(100)
+    .limit(limit)
 
   const items = rows.length
     ? await db

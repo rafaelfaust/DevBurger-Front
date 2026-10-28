@@ -1,3 +1,4 @@
+import { PrintOrderButton, PrintSettingsForm } from '@/components/order-print'
 import { OrderStatus } from '@/components/order-status'
 import { formatCurrency, formatDate } from '@/lib/format'
 import { paymentMethodShortLabels } from '@/lib/payment-methods'
@@ -15,6 +16,7 @@ export default async function OrdersPage() {
       <div className="admin-heading">
         <p className="eyebrow">Operação</p>
         <h1>Pedidos</h1>
+        <PrintSettingsForm />
       </div>
       <div className="orders-list">
         {orders.map(order => (
@@ -53,12 +55,15 @@ export default async function OrdersPage() {
                     ` · troco para ${formatCurrency(order.changeFor)} (devolver ${formatCurrency(order.changeFor - order.total)})`}
                 </small>
               </div>
-              <OrderStatus
-                initialStatus={order.status}
-                // Recria o seletor quando o status muda fora daqui (pagamento, outro aparelho).
-                key={order.status}
-                orderId={order.id}
-              />
+              <div className="order-card-actions">
+                <PrintOrderButton orderId={order.id} />
+                <OrderStatus
+                  initialStatus={order.status}
+                  // Recria o seletor quando o status muda fora daqui (pagamento, outro aparelho).
+                  key={order.status}
+                  orderId={order.id}
+                />
+              </div>
             </div>
             <ul>
               {order.products.map(product => (

@@ -6,6 +6,8 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { toast } from 'sonner'
 
+import { claimAutoPrint, getPrintSettings, printOrder } from '@/lib/print-settings'
+
 const POLL_MS = 10_000
 const soundKey = 'orders-sound'
 
@@ -128,6 +130,10 @@ export function OrdersAlert() {
       if (fresh.length) {
         const text = fresh.length === 1 ? 'Novo pedido chegou!' : `${fresh.length} pedidos novos chegaram!`
         toast.success(text)
+        if (getPrintSettings().auto) {
+          // Um de cada vez, para a impressora não receber tudo junto.
+          fresh.filter(claimAutoPrint).forEach((id, index) => setTimeout(() => printOrder(id), index * 4000))
+        }
         if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
           new Notification(text, { body: 'Abra o painel para aceitar.', tag: 'novo-pedido' })
         }
