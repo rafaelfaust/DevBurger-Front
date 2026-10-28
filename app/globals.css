@@ -2221,3 +2221,65 @@ footer {
     grid-column: 1 / -1;
   }
 }
+
+/* Aviso de pedidos novos no topo do painel */
+.orders-alert {
+  align-items: center;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  margin-bottom: 20px;
+  padding: 10px 14px;
+}
+
+.orders-alert-count {
+  align-items: center;
+  color: var(--muted);
+  display: inline-flex;
+  flex: 1;
+  font-weight: 700;
+  gap: 8px;
+}
+
+.orders-alert.is-ringing {
+  animation: orders-alert-pulse 1.2s ease-in-out infinite;
+  background: var(--yellow);
+  border-color: var(--yellow-dark);
+}
+
+.orders-alert.is-ringing .orders-alert-count {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.orders-alert-sound {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  gap: 6px;
+  padding: 6px 12px;
+}
+
+.orders-alert.is-ringing .orders-alert-sound {
+  border-color: var(--ink);
+}
+
+@keyframes orders-alert-pulse {
+  50% {
+    box-shadow: 0 0 0 6px rgba(245, 184, 46, 0.35);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orders-alert.is-ringing {
+    animation: none;
+  }
+}

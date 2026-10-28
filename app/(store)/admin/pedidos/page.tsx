@@ -55,6 +55,8 @@ export default async function OrdersPage() {
               </div>
               <OrderStatus
                 initialStatus={order.status}
+                // Recria o seletor quando o status muda fora daqui (pagamento, outro aparelho).
+                key={order.status}
                 orderId={order.id}
               />
             </div>

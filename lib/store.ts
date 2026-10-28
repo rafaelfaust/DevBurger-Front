@@ -588,6 +588,38 @@ export async function getOrders(): Promise<Order[]> {
   }))
 }
 
+// Consulta leve que o painel repete a cada poucos segundos:
+// pedidos esperando a loja aceitar e o pedido mais recente (para saber se a lista mudou).
+export async function getOrdersPulse() {
+  await requireAdminSession()
+  const tenant = await getCurrentTenant()
+  const db = getDb()
+
+  const [waiting, [latest]] = await Promise.all([
+    db
+      .select({ id: schema.orders.id })
+      .from(schema.orders)
+      .where(and(eq(schema.orders.tenantId, tenant.id), eq(schema.orders.status, 'confirmed')))
+      .orderBy(desc(schema.orders.createdAt))
+      .limit(50),
+    // Última mudança nos pedidos dos últimos 2 dias (novo pedido, pagamento, status em outro aparelho).
+    db
+      .select({ total: count(), changedAt: sql<string | null>`max(${schema.orders.updatedAt})::text` })
+      .from(schema.orders)
+      .where(
+        and(
+          eq(schema.orders.tenantId, tenant.id),
+          gte(schema.orders.createdAt, new Date(Date.now() - 2 * 24 * 60 * 60 * 1000))
+        )
+      )
+  ])
+
+  return {
+    waiting: waiting.map(row => row.id),
+    version: `${latest.total}:${latest.changedAt ?? ''}`
+  }
+}
+
 // Preços e taxa sempre vêm do banco; o cliente só informa ids e quantidades.
 type Tx = Parameters<Parameters<Database['transaction']>[0]>[0]
 
